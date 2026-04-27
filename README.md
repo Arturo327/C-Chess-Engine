@@ -1,0 +1,94 @@
+# C Chess Engine
+
+![C](https://img.shields.io/badge/language-C-00599C?logo=c&logoColor=white)
+![Status](https://img.shields.io/badge/status-in%20development-yellow)
+
+A lightweight, from-scratch chess engine implemented in C, designed for educational purposes and experimentation with fancy modern techniques.
+
+---
+
+## Features
+- Pure C implementation (no frameworks)
+- Alpha-beta pruning search
+- Quiescence search to reduce horizon effect
+- Bitboard representation
+- Move ordering
+- Transposition tables
+
+---
+
+## Why this project?
+
+This project was built to:
+- Understand how modern chess engines work and how they are capable of beating humans.
+- Experiment with different evaluation and move ordering techniques.
+
+---
+
+## Project structure
+
+```
+c-chess-engine/
+├── src/           # C source code
+├── include/       # Header files
+└── build/         # Compiled binaries
+
+```
+
+---
+
+## Quick Start
+
+Compile:
+```bash
+make
+```
+Run:
+```bash
+make run
+```
+When running you will see the bot playing with itself. I haven't implemented a nice UI yet.
+
+---
+
+## Performance
+
+Search time depends on position complexity, depth, and move ordering efficiency.
+
+At depth 8, search time typically ranges from 4 to 30 seconds.
+
+No formal benchmarking or ELO rating has been performed yet.
+
+---
+
+## Philosophy
+
+This project aims:
+- Build everything from scratch
+- Avoid black-box solutions
+- Focus on understanding core engine principles
+
+---
+
+## Future work
+
+- UCI protocol support
+- Multi-threading
+- Iterative deepening
+- Killer moves / history heuristic
+- Improve evaluation: pawn stucture, mobility, differentiate game phases, center control...
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+

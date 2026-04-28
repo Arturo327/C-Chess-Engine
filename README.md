@@ -14,6 +14,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Bitboard representation
 - Move ordering
 - Transposition tables
+- UCI protocol suport
 
 ---
 
@@ -43,11 +44,14 @@ Compile:
 ```bash
 make
 ```
-Run:
-```bash
-make run
-```
-When running you will see the bot playing with itself. I haven't implemented a nice UI yet.
+
+Then download cutechess (or something similar). 
+
+tools -> settings -> engines -> add
+
+Enter a name and the address of the compiled engine.
+
+Enjoy!
 
 ---
 
@@ -72,7 +76,6 @@ This project aims:
 
 ## Future work
 
-- UCI protocol support
 - Multi-threading
 - Iterative deepening
 - Killer moves / history heuristic

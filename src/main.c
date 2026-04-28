@@ -5,49 +5,42 @@
 #include <string.h>
 #include <stdlib.h>
 
-int parse_square(const char *s) {
-    	if (s[0] < 'a' || s[0] > 'h') return -1;
-    	if (s[1] < '1' || s[1] > '8') return -1;
-    	int col = s[0] - 'a';      // 0-7
-    	int row = s[1] - '1';      // 0-7
-    	return row * 8 + col;
+static void get_move (char *s, Pos *pos) {
+	int from = (s[0] - 'a') + (s[1] - '1') * 8;
+	int to   = (s[2] - 'a') + (s[3] - '1') * 8;
+	Move m;
+	m.from = from;
+	m.to = to;
+	m.pieza = pos->board[from];
+	m.capture = pos->board[to];
+
+	if ((m.pieza == 0 || m.pieza == 6) &&
+		m.capture == -1 &&
+		(to - from) % 8 != 0) {
+		m.capture = (m.pieza == 0) ? 6 : 0;
+	}
+
+	apply_move(&m, pos);
 }
 
-void get_move (Move *move, Pos *pos) {
-	char from[8], to[8];
-    	int sq;
-	int a;
 
-    	do {
-        	printf("from: ");
-        	a = scanf("%7s", from);
-        	sq = parse_square(from);
-        	if (sq == -1) printf("casilla invalida, usa formato e2\n");
-    	} while (sq == -1);
-    	move->from = sq;
-
-    	do {
-        	printf("to: ");
-        	a = scanf("%7s", to);
-        	sq = parse_square(to);
-        	if (sq == -1) printf("casilla invalida, usa formato e4\n");
-    	} while (sq == -1);
-    	move->to = sq;
-
-    	move->pieza = pos->board[move->from];
-    	move->capture = pos->board[move->to];
-}
-
-void print_square(int sq) {
-    	printf("%c%c", 'a' + (sq & 7), '1' + (sq >> 3));
-}
-
-void print_move(Move *m) {
-    	printf("bot: ");
-    	print_square(m->from);
-    	printf(" -> ");
-    	print_square(m->to);
-    	printf("\n");
+static int parse_position(const char *line, Pos *pos) {
+	reset(pos);
+	int move_count = 0;
+	char *moves_ptr = strstr(line, " moves ");
+	if (moves_ptr) {
+		moves_ptr += 7;
+		char *p = moves_ptr;
+		while (*p && *p != '\n') {
+			if (p[0] >= 'a' && p[0] <= 'h' && p[2] >= 'a' && p[2] <= 'h') {
+				get_move(p, pos);
+				move_count++;
+			}
+			while (*p && *p != ' ' && *p != '\n') p++;
+			while (*p == ' ') p++;
+		}
+	}
+	return move_count;
 }
 
 int main () {
@@ -55,24 +48,40 @@ int main () {
 	generate_king_table();
 	Pos pos;
 	reset(&pos);
-	int depth;
-	char color;
+	char line[4096];
+	int num_moves = 0;
+	while (fgets(line, sizeof(line), stdin)) {
+		if (strncmp(line, "uci", 3) == 0) {
+			printf("id name R2Chess\n");
+			printf("id author Arturo327\n");
+			printf("uciok\n");
+			fflush(stdout);
 
-	Move move;
-	printf("bot de ajedrez iniciado\nintroduzca una profundidad: ");
-	int a = scanf("%d", &depth);
-	/*
-	printf("¿blancas o negras? introduzca 'b' o 'n': ");
-	a = scanf(" %c", &color);
-	int withe = (color == 'b');
-	*/
-	int my_turn = 1;
+		} else if (strncmp(line, "isready", 7) == 0) {
+			printf("readyok\n");
+			fflush(stdout);
 
-	while (1) {
-		move = bot_move(depth, my_turn, &pos);
-		print_move(&move);
-		apply_move(&move, &pos);
-		my_turn = !my_turn;
+		} else if (strncmp(line, "ucinewgame", 10) == 0) {
+			reset(&pos);
+
+		} else if (strncmp(line, "position", 8) == 0) {
+			num_moves = parse_position(line, &pos);
+
+		} else if (strncmp(line, "go", 2) == 0) {
+			int depth = 8;
+			char *d = strstr(line, "depth ");
+    			if (d) depth = atoi(d + 6);
+
+    			int blancas = (num_moves % 2 == 0);
+    			Move best = bot_move(depth, blancas, &pos);
+    			printf("bestmove %c%c%c%c\n",
+        			'a' + (best.from & 7), '1' + (best.from >> 3),
+        			'a' + (best.to   & 7), '1' + (best.to   >> 3));
+    			fflush(stdout);
+
+		} else if (strncmp(line, "quit", 4) == 0) {
+			break;
+		}
 	}
 
 	return 0;

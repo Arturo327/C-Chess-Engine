@@ -39,6 +39,11 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 	for (int i = 0; i < total_moves; i++) {
 		child = *pos;
 		apply_move(actual_move, &child);
+	       	int king_sq = __builtin_ctzll(child.bitboard[5]);
+        	if (is_attacked(king_sq, 0, &child)) {
+            		actual_move++;
+            		continue;
+        	}
 		int eval = search_moves_black(&child, depth - 1, alpha, beta, NULL); 
 
 		if (eval > maxEval) { 
@@ -90,7 +95,12 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 
 	for (int i = 0; i < total_moves; i++) {
 		child = *pos;
-		apply_move(actual_move, &child); 
+		apply_move(actual_move, &child);
+	       	int king_sq = __builtin_ctzll(child.bitboard[11]);
+        	if (is_attacked(king_sq, 1, &child)) {
+            		actual_move++;
+            		continue;
+        	}
 		int eval = search_moves_withe(&child, depth - 1, alpha, beta, NULL);
 
 		if (eval < minEval) { 
@@ -108,16 +118,6 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 
 Move bot_move (int depth, int withe, Pos *pos) {
 	Move moves[256];
-	int total;
-
-	if (withe) {
-		total = get_w_moves(moves, pos);
-	} else {
-		total = get_b_moves(moves, pos);
-	}
-
-	if (total == 0) return (Move){0};
-
 	Move best_move = moves[0];
 	if (withe) search_moves_withe(pos, depth, -1000000, 1000000, &best_move);
 	else search_moves_black(pos, depth, -1000000, 1000000, &best_move);

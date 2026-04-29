@@ -29,8 +29,8 @@ void generate_king_table(void) {
 void generate_horse_table(void) {
 	uint64_t fila_a = 0x0101010101010101ULL;
 	uint64_t fila_h = 0x8080808080808080ULL;
-    	uint64_t fila_ab = 0x0303030303030303ULL;  // columnas A y B
-    	uint64_t fila_hg = 0xC0C0C0C0C0C0C0C0ULL;  // columnas H y G
+	uint64_t fila_ab = 0x0303030303030303ULL;  // columnas A y B
+	uint64_t fila_hg = 0xC0C0C0C0C0C0C0C0ULL;  // columnas H y G
 	for (int i = 0; i < 64; i++) {
 		uint64_t a = 1ULL << i;
 		if (!(a & fila_h)) {
@@ -67,15 +67,17 @@ void reset(Pos *pos) {
 	pos->bitboard[11] = 0x1000000000000000ULL;   //rey negro
 	
 	pos->en_passant = -1;
-    	pos->castle = 15; 
+	pos->castle = 15; 
 	for (int i = 0; i < 64; i++)
-    		pos->board[i] = -1;
+		pos->board[i] = -1;
 	for (int p = 0; p < 12; p++) {
-    		uint64_t bb = pos->bitboard[p];
-    		while (bb) {
-        		int sq = __builtin_ctzll(bb);
-        		pos->board[sq] = p;
-        		bb &= bb - 1;
-    		}
+		uint64_t bb = pos->bitboard[p];
+		while (bb) {
+			int sq = __builtin_ctzll(bb);
+			pos->board[sq] = p;
+			bb &= bb - 1;
+		}
 	}
+	pos->side = 0;
+	pos->hash = compute_hash(pos, 0);
 }

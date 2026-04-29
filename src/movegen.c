@@ -131,7 +131,7 @@ uint64_t get_queen_attacks (int from, uint64_t friendly, uint64_t enemy) {
 
 int get_short_castle_w (uint64_t occupied, Move *out, Pos *pos) {
 	if ((pos->castle & 0b0001) && !(occupied & 0x0000000000000060ULL) && !is_attacked(4, 0, pos) && !is_attacked(5, 0, pos) && !is_attacked(6, 0, pos)) { 
-    		*out = (Move){5, -1, 4, 6};
+    		*out = (Move){4, 6, -1, 5};
 		return 1;
 	}
 	return 0;
@@ -139,7 +139,7 @@ int get_short_castle_w (uint64_t occupied, Move *out, Pos *pos) {
 
 int get_long_castle_w (uint64_t occupied, Move *out, Pos *pos) {
 	if ((pos->castle & 0b0010) && !(occupied & 0x000000000000000EULL) && !is_attacked(4, 0, pos) && !is_attacked(3, 0, pos) && !is_attacked(2, 0, pos)) { 
-    		*out = (Move){5, -1, 4, 2};
+    		*out = (Move){4, 2, -1, 5};
 		return 1;
 	}
 	return 0;
@@ -147,7 +147,7 @@ int get_long_castle_w (uint64_t occupied, Move *out, Pos *pos) {
 
 int get_short_castle_b (uint64_t occupied, Move *out, Pos *pos) {
 	if ((pos->castle & 0b0100) && !(occupied & 0x6000000000000000ULL) && !is_attacked(60, 1, pos) && !is_attacked(61, 1, pos) && !is_attacked(62, 1, pos)) { 
-    		*out = (Move){11, -1, 60, 62};
+    		*out = (Move){60, 62, -1, 11};
 		return 1;
 	}
 	return 0;
@@ -155,7 +155,7 @@ int get_short_castle_b (uint64_t occupied, Move *out, Pos *pos) {
 
 int get_long_castle_b (uint64_t occupied, Move *out, Pos *pos) {
 	if ((pos->castle & 0b1000) && !(occupied & 0x0E00000000000000ULL) && !is_attacked(60, 1, pos) && !is_attacked(59, 1, pos) && !is_attacked(58, 1, pos)) { 
-    		*out = (Move){11, -1, 60, 58};
+    		*out = (Move){60, 58, -1, 11};
 		return 1;
 	}
 	return 0;

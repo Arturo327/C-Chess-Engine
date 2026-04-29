@@ -46,6 +46,8 @@ static int parse_position(const char *line, Pos *pos) {
 int main () {
 	generate_horse_table();
 	generate_king_table();
+	init_zobrist();
+    	tt_clear();   
 	Pos pos;
 	reset(&pos);
 	char line[4096];
@@ -63,12 +65,13 @@ int main () {
 
 		} else if (strncmp(line, "ucinewgame", 10) == 0) {
 			reset(&pos);
+    			tt_clear();   
 
 		} else if (strncmp(line, "position", 8) == 0) {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 8;
+			int depth = 12;
 			char *d = strstr(line, "depth ");
     			if (d) depth = atoi(d + 6);
 

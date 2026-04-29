@@ -13,7 +13,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Quiescence search to reduce horizon effect
 - Bitboard representation
 - Move ordering
-- Transposition tables
+- Transposition tables (Zobrist hashing)
 - UCI protocol suport
 
 ---
@@ -59,9 +59,9 @@ Enjoy!
 
 Search time depends on position complexity, depth, and move ordering efficiency.
 
-At depth 8, search time typically ranges from 4 to 30 seconds.
+At depth 12, search time typically ranges from 1 to 30 seconds.
 
-No formal benchmarking or ELO rating has been performed yet.
+According to Stockfish 18, it plays between 80% and 95% accurracy. It doesn’t mean much, I’m really bad at chess, so the bot beats me easily.
 
 ---
 
@@ -79,6 +79,8 @@ This project aims:
 - Multi-threading
 - Iterative deepening
 - Killer moves / history heuristic
+- Principal variation search (PVS)
+- Null move purning
 - Improve evaluation: pawn stucture, mobility, differentiate game phases, center control...
 
 ---

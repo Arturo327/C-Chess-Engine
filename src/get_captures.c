@@ -7,7 +7,6 @@
 int get_w_captures (Move *moves, Pos *pos) {
 	uint64_t friendly = pos->bitboard[0] | pos->bitboard[1] | pos->bitboard[2] | pos->bitboard[3] | pos->bitboard[4] | pos->bitboard[5];
 	uint64_t enemy = pos->bitboard[6] | pos->bitboard[7] | pos->bitboard[8] | pos->bitboard[9] | pos->bitboard[10] | pos->bitboard[11];
-	uint64_t occupied = friendly | enemy;
 
 	uint64_t piezas;
 	uint64_t attacks;
@@ -125,7 +124,6 @@ int get_w_captures (Move *moves, Pos *pos) {
 int get_b_captures (Move *moves, Pos *pos) {
 	uint64_t friendly = pos->bitboard[6] | pos->bitboard[7] | pos->bitboard[8] | pos->bitboard[9] | pos->bitboard[10] | pos->bitboard[11];
 	uint64_t enemy = pos->bitboard[0] | pos->bitboard[1] | pos->bitboard[2] | pos->bitboard[3] | pos->bitboard[4] | pos->bitboard[5];
-	uint64_t occupied = friendly | enemy;
 
 	uint64_t piezas;
 	uint64_t attacks;

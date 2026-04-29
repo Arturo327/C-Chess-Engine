@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "types.h"
+#include "zobrist.h"
 
 void apply_move(Move *move, Pos *pos);
 

@@ -9,6 +9,8 @@
 #include "eval.h"
 #include "types.h"
 #include "sort.h"
+#include "tt.h"
+#include "zobrist.h"
 
 int quiescence_w (Pos *pos, int depth, int alpha, int beta);
 int quiescence_b (Pos *pos, int depth, int alpha, int beta);

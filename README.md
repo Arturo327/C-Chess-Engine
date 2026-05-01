@@ -15,6 +15,9 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Move ordering
 - Transposition tables (Zobrist hashing)
 - UCI protocol suport
+- Iterative deepening
+- Killer moves
+- History heuristic
 
 ---
 
@@ -59,26 +62,17 @@ Enjoy!
 
 Search time depends on position complexity, depth, and move ordering efficiency.
 
-At depth 12, search time typically ranges from 1 to 30 seconds.
+At depth 10, search time typically ranges from 1s to 20s in simple positions (final and beggining), and even 2 min at very complex positions.
 
-According to Stockfish 18, it plays between 80% and 95% accurracy. It doesn’t mean much, I’m really bad at chess, so the bot beats me easily.
+According to Stockfish 18, it plays around 90% accurracy. It doesn’t mean much (I suck at chess), but the bot beats me easily.
 
----
-
-## Philosophy
-
-This project aims:
-- Build everything from scratch
-- Avoid black-box solutions
-- Focus on understanding core engine principles
+Many times the games finish with a draw becouse position repetition.
 
 ---
 
 ## Future work
 
 - Multi-threading
-- Iterative deepening
-- Killer moves / history heuristic
 - Principal variation search (PVS)
 - Null move purning
 - Improve evaluation: pawn stucture, mobility, differentiate game phases, center control...

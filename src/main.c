@@ -7,22 +7,14 @@
 
 static void get_move (char *s, Pos *pos) {
 	int from = (s[0] - 'a') + (s[1] - '1') * 8;
-	int to   = (s[2] - 'a') + (s[3] - '1') * 8;
+	int to	 = (s[2] - 'a') + (s[3] - '1') * 8;
 	Move m;
 	m.from = from;
 	m.to = to;
 	m.pieza = pos->board[from];
 	m.capture = pos->board[to];
-
-	if ((m.pieza == 0 || m.pieza == 6) &&
-		m.capture == -1 &&
-		(to - from) % 8 != 0) {
-		m.capture = (m.pieza == 0) ? 6 : 0;
-	}
-
 	apply_move(&m, pos);
 }
-
 
 static int parse_position(const char *line, Pos *pos) {
 	reset(pos);
@@ -47,7 +39,7 @@ int main () {
 	generate_horse_table();
 	generate_king_table();
 	init_zobrist();
-    	tt_clear();   
+	tt_clear();   
 	Pos pos;
 	reset(&pos);
 	char line[4096];
@@ -65,22 +57,26 @@ int main () {
 
 		} else if (strncmp(line, "ucinewgame", 10) == 0) {
 			reset(&pos);
-    			tt_clear();   
+			tt_clear();
+			memset(history, 0, sizeof(history));
+			memset(killers, 0, sizeof(killers));
 
 		} else if (strncmp(line, "position", 8) == 0) {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 12;
+			int depth = 8;
+			/*
 			char *d = strstr(line, "depth ");
-    			if (d) depth = atoi(d + 6);
+			if (d) depth = atoi(d + 6);
+			*/
 
-    			int blancas = (num_moves % 2 == 0);
-    			Move best = bot_move(depth, blancas, &pos);
-    			printf("bestmove %c%c%c%c\n",
-        			'a' + (best.from & 7), '1' + (best.from >> 3),
-        			'a' + (best.to   & 7), '1' + (best.to   >> 3));
-    			fflush(stdout);
+			int blancas = (num_moves % 2 == 0);
+			Move best = bot_move(depth, blancas, &pos);
+			printf("bestmove %c%c%c%c\n",
+				'a' + (best.from & 7), '1' + (best.from >> 3),
+				'a' + (best.to	 & 7), '1' + (best.to	>> 3));
+			fflush(stdout);
 
 		} else if (strncmp(line, "quit", 4) == 0) {
 			break;
@@ -89,3 +85,4 @@ int main () {
 
 	return 0;
 }
+

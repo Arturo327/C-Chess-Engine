@@ -2,6 +2,35 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+
+static void update_history(Move *m, int depth) {
+	if (m->capture != -1) return;
+	history[m->pieza][m->to] += depth * depth;
+
+	if (history[m->pieza][m->to] > 1000000) {
+		for (int p = 0; p < 12; p++)
+			for (int sq = 0; sq < 64; sq++)
+				history[p][sq] /= 2;
+	}
+}
+
+static void store_killer(Move *m, int ply) {
+	if (m->capture != -1) return;
+
+	if (killers[ply][0].from == m->from && killers[ply][0].to == m->to) return;
+
+	killers[ply][1] = killers[ply][0];
+	killers[ply][0] = *m;
+}
+
+void shift_killers(void) {
+	for (int i = 0; i < MAX_DEPTH - 2; i++) {
+		killers[i][0] = killers[i + 2][0];
+		killers[i][1] = killers[i + 2][1];
+	}
+	memset(&killers[MAX_DEPTH - 2], 0, 2 * sizeof(killers[0]));
+}
 
 int quiescence_w(Pos *pos, int depth, int alpha, int beta) {
 	int stand_pat = eval_pos(pos);
@@ -12,11 +41,13 @@ int quiescence_w(Pos *pos, int depth, int alpha, int beta) {
 	Move captures[64];
 	Move *actual_move = captures;
 	int count = get_w_captures(captures, pos);
-	sort_moves(captures, count);
+	sort_moves(captures, count, 0);
 	Pos child;
 	for (int i = 0; i < count; i++) {
 		child = *pos;
 		apply_move(actual_move, &child);
+		int king_sq = __builtin_ctzll(child.bitboard[5]);
+		if (is_attacked(king_sq, 0, &child)) { actual_move++; continue; }
 		int eval = quiescence_b(&child, depth - 1, alpha, beta);
 
 		if (eval > alpha) alpha = eval;
@@ -26,12 +57,14 @@ int quiescence_w(Pos *pos, int depth, int alpha, int beta) {
 	return alpha;
 }
 
-int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out)  {
+int search_moves_withe (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out)  {
 	if (depth == 0) return quiescence_w (pos, 5, alpha, beta);
 
 	int original_alpha = alpha;
 	TTEntry *entry = tt_probe(pos->hash);
 	if (entry && entry->depth >= depth) {
+		if (best_out && entry->best.from != entry->best.to)
+			*best_out = entry->best;
 		if (entry->flag == TT_EXACT) return entry->score;
 		if (entry->flag == TT_LOWER && entry->score >= beta)  return entry->score;
 		if (entry->flag == TT_UPPER && entry->score <= alpha) return entry->score;
@@ -41,7 +74,7 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 	Move *actual_move = moves;
 
 	Move tt_best_move = {0};
-	int has_tt_move = (entry != NULL);
+	int has_tt_move = (entry != NULL && entry->best.from != entry->best.to);
 
 	if (has_tt_move) {
 		tt_best_move = entry->best;
@@ -56,12 +89,13 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 		}
 	}
 
-	sort_moves(moves + has_tt_move, total_moves - has_tt_move);
+	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply);
 
 	int maxEval = -1000000;
 	Pos child;
-	Move best_move = moves[0];
+	Move best_move = {0};
 	actual_move = moves;
+	int found_legal = 0;
 
 	for (int i = 0; i < total_moves; i++) {
 		child = *pos;
@@ -71,7 +105,11 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 			actual_move++;
 			continue;
 		}
-		int eval = search_moves_black(&child, depth - 1, alpha, beta, NULL); 
+		if (!found_legal) { 
+			best_move = *actual_move; 
+			found_legal = 1; 
+		}
+		int eval = search_moves_black(&child, depth - 1, ply + 1, alpha, beta, NULL); 
 
 		if (eval > maxEval) { 
 			maxEval = eval;
@@ -80,6 +118,8 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 		}
 		if (eval > alpha) alpha = eval; 
 		if (beta <= alpha) {
+			store_killer(actual_move, ply);
+			update_history(actual_move, depth);
 			tt_store(pos->hash, maxEval, depth, TT_LOWER, &best_move);
 			return maxEval; 
 		}
@@ -87,9 +127,16 @@ int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out
 		actual_move++;
 	}
 
+	if (maxEval == -1000000) {
+		int king_sq = __builtin_ctzll(pos->bitboard[5]);
+    		int score = is_attacked(king_sq, 0, pos) ? -(100000 - ply) : 0;
+    		tt_store(pos->hash, score, depth, TT_EXACT, NULL);
+    		return score;
+	}
+
+
 	int flag = (maxEval <= original_alpha) ? TT_UPPER : TT_EXACT;
 	tt_store(pos->hash, maxEval, depth, flag, &best_move);
-
 	return maxEval;
 }
 
@@ -101,13 +148,15 @@ int quiescence_b(Pos *pos, int depth, int alpha, int beta) {
 
 	Move captures[64];
 	int count = get_b_captures(captures, pos);
-	sort_moves(captures, count);
+	sort_moves(captures, count, 0);
 	Pos child;
 	Move *actual_move = captures;
 
 	for (int i = 0; i < count; i++) {
 		child = *pos;
 		apply_move(actual_move, &child);
+		int king_sq = __builtin_ctzll(child.bitboard[11]);
+		if (is_attacked(king_sq, 1, &child)) { actual_move++; continue; }
 		int eval = quiescence_w(&child, depth - 1, alpha, beta);
 
 		if (eval < beta) beta = eval;
@@ -117,12 +166,14 @@ int quiescence_b(Pos *pos, int depth, int alpha, int beta) {
 	return beta;
 }
 
-int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out)  {
+int search_moves_black (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out)  {
 	if (depth == 0) return quiescence_b (pos, 5, alpha, beta);
 
 	int original_beta = beta;
 	TTEntry *entry = tt_probe(pos->hash);
 	if (entry && entry->depth >= depth) {
+		if (best_out && entry->best.from != entry->best.to)
+			*best_out = entry->best;
 		if (entry->flag == TT_EXACT) return entry->score;
 		if (entry->flag == TT_LOWER && entry->score >= beta) return entry->score;
 		if (entry->flag == TT_UPPER && entry->score <= alpha) return entry->score;
@@ -132,7 +183,7 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 	Move *actual_move = moves;
 
 	Move tt_best_move = {0};
-	int has_tt_move = (entry != NULL);
+	int has_tt_move = (entry != NULL && entry->best.from != entry->best.to);
 
 	if (has_tt_move) {
 		tt_best_move = entry->best;
@@ -147,12 +198,13 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 		}
 	}
 
-	sort_moves(moves + has_tt_move, total_moves - has_tt_move);
+	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply);
 
 	int minEval = 1000000;
 	actual_move = moves;
-	Move best_move = moves[0];
+	Move best_move = {0};
 	Pos child;
+	int found_legal = 0;
 
 	for (int i = 0; i < total_moves; i++) {
 		child = *pos;
@@ -162,7 +214,11 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 			actual_move++;
 			continue;
 		}
-		int eval = search_moves_withe(&child, depth - 1, alpha, beta, NULL);
+		if (!found_legal) { 
+			best_move = *actual_move; 
+			found_legal = 1; 
+		}
+		int eval = search_moves_withe(&child, depth - 1, ply + 1, alpha, beta, NULL);
 
 		if (eval < minEval) { 
 			minEval = eval; 
@@ -171,11 +227,20 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 		}
 		if (eval < beta) beta = eval; 
 		if (beta <= alpha) {
+			store_killer(actual_move, ply);
+			update_history(actual_move, depth);
 			tt_store(pos->hash, minEval, depth, TT_UPPER, &best_move);
 			return minEval; 
 		}
 
 		actual_move++;
+	}
+
+	if (minEval == 1000000) {
+		int king_sq = __builtin_ctzll(pos->bitboard[11]);
+    		int score = is_attacked(king_sq, 1, pos) ? (100000 - ply) : 0;
+    		tt_store(pos->hash, score, depth, TT_EXACT, NULL);
+    		return score;
 	}
 
 	int flag = (minEval >= original_beta) ? TT_LOWER : TT_EXACT;
@@ -184,23 +249,14 @@ int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out
 }
 
 Move bot_move (int depth, int withe, Pos *pos) {
-	Move moves[256];
-	Move best_move = moves[0];
-	if (withe) search_moves_withe(pos, depth, -1000000, 1000000, &best_move);
-	else search_moves_black(pos, depth, -1000000, 1000000, &best_move);
+	Move best_move = {0};
+	shift_killers();
+	for (int i = 1; i <= depth; i++) {
+		if (withe) search_moves_withe(pos, i, 0, -1000000, 1000000, &best_move);
+		else search_moves_black(pos, i, 0, -1000000, 1000000, &best_move);
+	}
 	return best_move;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -15,8 +15,8 @@
 int quiescence_w (Pos *pos, int depth, int alpha, int beta);
 int quiescence_b (Pos *pos, int depth, int alpha, int beta);
 
-int search_moves_withe (Pos *pos, int depth, int alpha, int beta, Move *best_out);
-int search_moves_black (Pos *pos, int depth, int alpha, int beta, Move *best_out);
+int search_moves_withe (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out);
+int search_moves_black (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out);
 
 Move bot_move(int depth, int withe, Pos *pos);
 

@@ -12,7 +12,7 @@
 
 typedef struct {
 	uint64_t key;
-	int16_t score;
+	int32_t score;
 	int8_t depth;
 	uint8_t flag;
 	Move best;

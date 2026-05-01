@@ -5,6 +5,11 @@
 
 #include "types.h"
 
-void sort_moves (Move *moves, int count);
+#define MAX_DEPTH 16
+
+extern int history[12][64];
+extern Move killers[MAX_DEPTH][2];
+
+void sort_moves (Move *moves, int count, int ply);
 
 #endif

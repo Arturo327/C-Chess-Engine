@@ -110,12 +110,12 @@ int get_w_captures (Move *moves, Pos *pos) {
 	attacks = king_moves[king_sq] & enemy;
 	while (attacks) {
 		actual_move->from = king_sq;
-    		actual_move->pieza = 5;
-    		actual_move->to = __builtin_ctzll(attacks);
-    		attacks &= attacks - 1;
-    		actual_move->capture = pos->board[actual_move->to];
-    		actual_move++;
-    		total_moves++;
+		actual_move->pieza = 5;
+		actual_move->to = __builtin_ctzll(attacks);
+		attacks &= attacks - 1;
+		actual_move->capture = pos->board[actual_move->to];
+		actual_move++;
+		total_moves++;
 	}
 
 	return total_moves;
@@ -142,7 +142,7 @@ int get_b_captures (Move *moves, Pos *pos) {
 			actual_move->to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
 
-    			actual_move->pieza = 6;
+			actual_move->pieza = 6;
 			actual_move->capture = pos->board[actual_move->to];
 
 			actual_move++;
@@ -160,7 +160,7 @@ int get_b_captures (Move *moves, Pos *pos) {
 			actual_move->to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
 
-    			actual_move->pieza = 8;
+			actual_move->pieza = 8;
 			actual_move->capture = pos->board[actual_move->to];
 
 			actual_move++;
@@ -178,7 +178,7 @@ int get_b_captures (Move *moves, Pos *pos) {
 			actual_move->to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
 
-    			actual_move->pieza = 9;
+			actual_move->pieza = 9;
 			actual_move->capture = pos->board[actual_move->to];
 
 			actual_move++;
@@ -196,7 +196,7 @@ int get_b_captures (Move *moves, Pos *pos) {
 			actual_move->to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
 
-    			actual_move->pieza = 7;
+			actual_move->pieza = 7;
 			actual_move->capture = pos->board[actual_move->to];
 
 			actual_move++;
@@ -206,20 +206,20 @@ int get_b_captures (Move *moves, Pos *pos) {
 
 	piezas = pos->bitboard[10];
 	while (piezas) {
-    		sq = __builtin_ctzll(piezas);
-    		piezas &= piezas - 1;
-    		attacks = get_queen_attacks(sq, friendly, enemy) & enemy;
-    		while (attacks) {
-        		actual_move->from = sq;
-        		actual_move->to = __builtin_ctzll(attacks);
-        		attacks &= attacks - 1;
-        
+		sq = __builtin_ctzll(piezas);
+		piezas &= piezas - 1;
+		attacks = get_queen_attacks(sq, friendly, enemy) & enemy;
+		while (attacks) {
+			actual_move->from = sq;
+			actual_move->to = __builtin_ctzll(attacks);
+			attacks &= attacks - 1;
+	
 			actual_move->pieza = 10;
-        		actual_move->capture = pos->board[actual_move->to];
+			actual_move->capture = pos->board[actual_move->to];
 
-        		actual_move++;
-        		total_moves++;
-    		}
+			actual_move++;
+			total_moves++;
+		}
 	}
 
 
@@ -228,12 +228,12 @@ int get_b_captures (Move *moves, Pos *pos) {
 	attacks = king_moves[king_sq] & enemy;
 	while (attacks) {
 		actual_move->from = king_sq;
-    		actual_move->pieza = 11;
-    		actual_move->to = __builtin_ctzll(attacks);
-    		attacks &= attacks - 1;
-    		actual_move->capture = pos->board[actual_move->to];
-    		actual_move++;
-    		total_moves++;
+		actual_move->pieza = 11;
+		actual_move->to = __builtin_ctzll(attacks);
+		attacks &= attacks - 1;
+		actual_move->capture = pos->board[actual_move->to];
+		actual_move++;
+		total_moves++;
 	}
 
 	return total_moves;

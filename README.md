@@ -18,6 +18,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Iterative deepening
 - Killer moves
 - History heuristic
+- Principal variation search (PVS)
 
 ---
 
@@ -73,7 +74,6 @@ Many times the games finish with a draw becouse position repetition.
 ## Future work
 
 - Multi-threading
-- Principal variation search (PVS)
 - Null move purning
 - Improve evaluation: pawn stucture, mobility, differentiate game phases, center control...
 

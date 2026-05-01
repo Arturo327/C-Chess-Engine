@@ -65,14 +65,9 @@ int main () {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 8;
-			/*
-			char *d = strstr(line, "depth ");
-			if (d) depth = atoi(d + 6);
-			*/
+			int depth = 10;
 
-			int blancas = (num_moves % 2 == 0);
-			Move best = bot_move(depth, blancas, &pos);
+			Move best = bot_move(depth, &pos);
 			printf("bestmove %c%c%c%c\n",
 				'a' + (best.from & 7), '1' + (best.from >> 3),
 				'a' + (best.to	 & 7), '1' + (best.to	>> 3));

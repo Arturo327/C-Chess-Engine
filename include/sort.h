@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-#define MAX_DEPTH 16
+#define MAX_DEPTH 30
 
 extern int history[12][64];
 extern Move killers[MAX_DEPTH][2];

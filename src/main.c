@@ -7,11 +7,28 @@
 
 static void get_move (char *s, Pos *pos) {
 	int from = (s[0] - 'a') + (s[1] - '1') * 8;
-	int to	 = (s[2] - 'a') + (s[3] - '1') * 8;
+	int to = (s[2] - 'a') + (s[3] - '1') * 8;
+	int side = pos->side;
 	Move m;
 	m.from = from;
 	m.to = to;
 	m.pieza = pos->board[from];
+	if (strlen(s) > 4) {
+		switch (s[4]) {
+			case 'q':
+				m.pieza = side ? 10 : 4;
+				break;
+			case 'r':
+				m.pieza = side ? 7 : 1;
+				break;
+			case 'b':
+				m.pieza = side ? 9 : 3;
+				break;
+			case 'n':
+				m.pieza = side ? 8 : 2;
+				break;
+		}
+	}
 	m.capture = pos->board[to];
 	apply_move(&m, pos);
 }
@@ -65,12 +82,23 @@ int main () {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 10;
-
+			int depth = 16;
 			Move best = bot_move(depth, &pos);
-			printf("bestmove %c%c%c%c\n",
+			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),
 				'a' + (best.to	 & 7), '1' + (best.to	>> 3));
+
+			char promo_char = 0;
+			if (pos.board[best.from] == 0 && best.pieza >= 1 && best.pieza <= 4) {
+				char pc[] = {0, 'r', 'n', 'b', 'q'};
+				promo_char = pc[best.pieza];
+			}
+			if (pos.board[best.from] == 6 && best.pieza >= 7 && best.pieza <= 10) {
+				char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
+				promo_char = pc[best.pieza];
+			}
+			if (promo_char) printf("%c\n", promo_char);
+			else printf("\n");
 			fflush(stdout);
 
 		} else if (strncmp(line, "quit", 4) == 0) {

@@ -37,6 +37,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 	int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
 	if (depth == 0) return stand_pat;
 
+	if (stand_pat + 1000 < alpha) return alpha;
 	if (stand_pat >= beta) return beta;
 	if (stand_pat > alpha) alpha = stand_pat;
 
@@ -84,6 +85,21 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
     		}
 	}
 
+	if (depth >= 3 && !is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos)) {
+    		Pos null_pos = *pos;
+    		null_pos.side ^= 1;
+    		null_pos.hash ^= zob_turn;
+		int old_ep_idx = (null_pos.en_passant == -1) ? 8 : (null_pos.en_passant & 7);
+		null_pos.en_passant = -1;
+		null_pos.hash ^= zob_ep[old_ep_idx];
+
+    		int reduction = 3;
+		int c = depth - 1 - reduction;
+		if (c < 0) c = 0;
+    		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL);
+    		if (null_eval >= beta) return beta;
+	}
+
 	Move moves[256];
 	int total_moves;
 	if (side) total_moves = get_b_moves(moves, pos);
@@ -127,7 +143,12 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 		if (i == 0) {
 			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
 		} else {
-			eval = -negamax(&child, depth - 1, ply + 1, -alpha - 1, -alpha, NULL);
+			int reduction = 0;
+    			if (i >= 3 && depth >= 3 && actual_move->capture == -1) {
+        			reduction = 1;
+        			if (i >= 6) reduction = depth / 3;
+    			}
+			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL);
 			if (eval > alpha && eval < beta) {
 				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
 			}
@@ -153,9 +174,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 	if (maxEval == -1000000) {
 		int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
 		int score = is_attacked(king_sq, side, pos) ? -(100000 - ply) : 0;
-		int a;
-		if (score > 99000) a = ply + score;
-		else if (score < -99000) a = ply + score;
+		int a = score;
+		if (score < -99000) a = score - ply;
 		tt_store(pos->hash, a, depth, TT_EXACT, NULL);
 		return score;
 	}
@@ -172,8 +192,20 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 Move bot_move (int depth, Pos *pos) {
 	Move best_move = {0};
 	shift_killers();
+	int prev_score = 0;
 	for (int i = 1; i <= depth; i++) {
-		int a = negamax(pos, i, 0, -1000000, 1000000, &best_move);
+		int delta = 50;
+		int alpha = prev_score - delta;
+		int beta = prev_score + delta;
+		int score;
+		while (1) {
+			score = negamax(pos, i, 0, -1000000, 1000000, &best_move);
+			if (score <= alpha) alpha -= delta * 2;
+            		else if (score >= beta) beta += delta * 2;
+            		else break;
+            		delta *= 2;
+		}
+		prev_score = score;
 	}
 	return best_move;
 }

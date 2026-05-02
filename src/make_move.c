@@ -8,11 +8,31 @@ void apply_move (Move *m, Pos *pos) {
 	int old_ep_idx = (pos->en_passant == -1) ? 8 : (pos->en_passant & 7);
 	pos->hash ^= zob_ep[old_ep_idx];
 
-	pos->hash ^= zob_pieces[m->pieza][m->from];
-	pos->hash ^= zob_pieces[m->pieza][m->to];
-	pos->bitboard[m->pieza] ^= (1ULL << m->from) | (1ULL << m->to);
-	pos->board[m->to] = m->pieza;
-	pos->board[m->from] = -1;
+	// coronacion
+	int is_w_promo = (pos->board[m->from] == 0 && m->pieza != 0);
+	int is_b_promo = (pos->board[m->from] == 6 && m->pieza != 6);
+
+	if (is_w_promo) {
+		pos->hash ^= zob_pieces[0][m->from];
+		pos->hash ^= zob_pieces[m->pieza][m->to];
+		pos->bitboard[0] &= ~(1ULL << m->from);
+		pos->bitboard[m->pieza] |= (1ULL << m->to);
+		pos->board[m->from] = -1;
+		pos->board[m->to] = m->pieza;
+	} else if (is_b_promo) {
+		pos->hash ^= zob_pieces[6][m->from];
+		pos->hash ^= zob_pieces[m->pieza][m->to];
+		pos->bitboard[6] &= ~(1ULL << m->from);
+		pos->bitboard[m->pieza] |= (1ULL << m->to);
+		pos->board[m->from] = -1;
+		pos->board[m->to] = m->pieza;
+	} else {
+		pos->hash ^= zob_pieces[m->pieza][m->from];
+		pos->hash ^= zob_pieces[m->pieza][m->to];
+		pos->bitboard[m->pieza] ^= (1ULL << m->from) | (1ULL << m->to);
+		pos->board[m->to] = m->pieza;
+		pos->board[m->from] = -1;
+	}
 
 	if (m->capture != -1) {
 		pos->hash ^= zob_pieces[m->capture][m->to];
@@ -92,23 +112,6 @@ void apply_move (Move *m, Pos *pos) {
 		pos->en_passant = m->from + 8;
 	if (m->pieza == 6 && m->from - m->to == 16) 
 		pos->en_passant = m->from - 8;
-
-	// coronacion
-	if (m->pieza == 0 && m->to >= 56) {
-		pos->hash ^= zob_pieces[0][m->to];
-		pos->hash ^= zob_pieces[4][m->to];
-		pos->bitboard[0] &= ~(1ULL << m->to);
-		pos->bitboard[4] |= (1ULL << m->to);
-		pos->board[m->to] = 4;
-	}
-
-	if (m->pieza == 6 && m->to <= 7) {
-		pos->hash ^= zob_pieces[6][m->to];
-		pos->hash ^= zob_pieces[10][m->to];
-		pos->bitboard[6] &= ~(1ULL << m->to);
-		pos->bitboard[10] |= (1ULL << m->to);
-		pos->board[m->to] = 10;
-	}
 
 	pos->hash ^= zob_castle[pos->castle & 0xF];
 	int new_ep_idx = (pos->en_passant == -1) ? 8 : (pos->en_passant & 7);

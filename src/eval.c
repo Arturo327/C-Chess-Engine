@@ -5,7 +5,7 @@
 #include <eval.h>
 
 static int values[6] = {100, 500, 300, 315, 900, 100000};
-static int pawn_table[64] = {
+static int pawn_mg_table[64] = {
 	0,  0,	0,  0,	0,  0,	0,  0,
 	5, 10, 10,-20,-20, 10, 10,  5,
 	5, -5,-10,  0,	0,-10, -5,  5,
@@ -15,7 +15,17 @@ static int pawn_table[64] = {
 	50, 50, 50, 50, 50, 50, 50, 50,
 	0,  0,	0,  0,	0,  0,	0,  0
 };
-static int horse_table[64] = {
+static int pawn_eg_table[64] = {
+	0,   0,   0,   0,   0,	 0,   0,   0,
+	5,   5,   5,   5,   5,	 5,   5,   5,
+	10,  10,  10,  10,  10,  10,  10,  10,
+	20,  20,  20,  20,  20,  20,  20,  20,
+	35,  35,  35,  35,  35,  35,  35,  35,
+	60,  60,  60,  60,  60,  60,  60,  60,
+	100, 100, 100, 100, 100, 100, 100, 100,
+	0,   0,   0,   0,   0,	 0,   0,   0
+};
+static int horse_mg_table[64] = {
 	-50,-40,-30,-30,-30,-30,-40,-50,
 	-40,-20, 0, 5, 5,  0, -20, -40,
 	-30, 5, 10, 15, 15, 10,  5,-30,
@@ -25,7 +35,17 @@ static int horse_table[64] = {
 	-40,-20, 0,  0,  0,  0,-20,-40,
 	-50,-40,-30,-30,-30,-30,-40,-50
 };
-static int alfil_table[64] = {
+static int horse_eg_table[64] = {
+	-40,-30,-20,-20,-20,-20,-30,-40,
+	-30,-10,  0,  0,  0,  0,-10,-30,
+	-20,  0, 10, 15, 15, 10,  0,-20,
+	-20,  5, 15, 20, 20, 15,  5,-20,
+	-20,  5, 15, 20, 20, 15,  5,-20,
+	-20,  0, 10, 15, 15, 10,  0,-20,
+	-30,-10,  0,  5,  5,  0,-10,-30,
+	-40,-30,-20,-20,-20,-20,-30,-40
+};
+static int alfil_mg_table[64] = {
 	-20,-10,-10,-10,-10,-10,-10,-20,
 	-10,  5,  0,  0,  0,  0,  5,-10,
 	-10, 10, 10, 10, 10, 10, 10,-10,
@@ -35,7 +55,17 @@ static int alfil_table[64] = {
 	-10,  0,  0,  0,  0,  0,  0,-10,
 	-20,-10,-10,-10,-10,-10,-10,-20
 };
-static int rook_table[64] = {
+static int alfil_eg_table[64] = {
+	-10,-5,-5,-5,-5,-5,-5,-10,
+	-5, 5, 5, 5, 5, 5, 5, -5,
+	-5,10,10,10,10,10,10, -5,
+	-5, 5,10,10,10,10, 5, -5,
+	-5, 5,10,10,10,10, 5, -5,
+	-5,10,10,10,10,10,10, -5,
+	-5, 5, 5, 5, 5, 5, 5, -5,
+	-10,-5,-5,-5,-5,-5,-5,-10
+};
+static int rook_mg_table[64] = {
 	0,  0,	5, 10, 10,  5,	0,  0,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
@@ -45,7 +75,17 @@ static int rook_table[64] = {
 	5, 10, 10, 10, 10, 10, 10,  5,
 	0,  0,	0,  0,	0,  0,	0,  0
 };
-static int queen_table[64] = {
+static int rook_eg_table[64] = {
+	0,  0,	5, 10, 10,  5,	0,  0,
+	5, 10, 10, 15, 15, 10, 10,  5,
+	0,  5,	5, 10, 10,  5,	5,  0,
+	0,  0,	5, 10, 10,  5,	0,  0,
+	0,  0,	5, 10, 10,  5,	0,  0,
+	0,  5,	5, 10, 10,  5,	5,  0,
+	5, 10, 10, 15, 15, 10, 10,  5,
+	0,  0,	5, 10, 10,  5,	0,  0
+};
+static int queen_mg_table[64] = {
 	-20,-10,-10, -5, -5,-10,-10,-20,
 	-10,  0,  5,  0,  0,  0,  0,-10,
 	-10,  5,  5,  5,  5,  5,  0,-10,
@@ -55,7 +95,17 @@ static int queen_table[64] = {
 	-10,  0,  0,  0,  0,  0,  0,-10,
 	-20,-10,-10, -5, -5,-10,-10,-20
 };
-static int king_table[64] = {
+static int queen_eg_table[64] = {
+	-10,-5,-5,-5,-5,-5,-5,-10,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-5, 5, 5,10,10, 5, 5, -5,
+	-5, 5,10,10,10,10, 5, -5,
+	-5, 5,10,10,10,10, 5, -5,
+	-5, 5, 5,10,10, 5, 5, -5,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-10,-5,-5,-5,-5,-5,-5,-10
+};
+static int king_mg_table[64] = {
 	20, 30, 10,  0,  0, 10, 30, 20,
 	20, 20,  0,  0,  0,  0, 20, 20,
 	-10,-20,-20,-20,-20,-20,-20,-10,
@@ -65,44 +115,45 @@ static int king_table[64] = {
 	-30,-40,-40,-50,-50,-40,-40,-30,
 	-30,-40,-40,-50,-50,-40,-40,-30
 };
-static int *tables[6] = {pawn_table, rook_table, horse_table, alfil_table, queen_table, king_table};
+static int king_eg_table[64] = {
+	-50,-30,-30,-30,-30,-30,-30,-50,
+	-30,-10,  0,  0,  0,  0,-10,-30,
+	-30,  0, 20, 30, 30, 20,  0,-30,
+	-30,  0, 30, 40, 40, 30,  0,-30,
+	-30,  0, 30, 40, 40, 30,  0,-30,
+	-30,  0, 20, 30, 30, 20,  0,-30,
+	-30,-10,  0,  0,  0,  0,-10,-30,
+	-50,-30,-30,-30,-30,-30,-30,-50
+};
+static int *tables_mg[6] = {pawn_mg_table, rook_mg_table, horse_mg_table, alfil_mg_table, queen_mg_table, king_mg_table};
+static int *tables_eg[6] = {pawn_eg_table, rook_eg_table, horse_eg_table, alfil_eg_table, queen_eg_table, king_eg_table};
+static int fase_values[6] = {0, 2, 1, 1, 4, 0};
 
 int eval_pos (Pos *pos) {
 	int eval = 0;
+	int fase = 0;
 	for (int p = 0; p < 6; p++) {
-		int num_p = __builtin_popcountll(pos->bitboard[p]);
-		eval += num_p * values[p];
+		int num_w = __builtin_popcountll(pos->bitboard[p]);
+		int num_b = __builtin_popcountll(pos->bitboard[p + 6]);
+		eval += (num_w - num_b) * values[p];
+		fase += (num_w + num_b) * fase_values[p];
+	}
+	if (fase > 24) fase = 24;
+
+	for (int p = 0; p < 6; p++) {
 		uint64_t bits = pos->bitboard[p];
-		for (int i = 0; i < num_p; i++) {
+		while (bits) {
 			int sq = __builtin_ctzll(bits);
 			bits &= bits - 1;
-			eval += tables[p][sq];
+			eval += (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
 		}
-	}
-	
-	for (int p = 0; p < 6; p++) {
-		int num_p = __builtin_popcountll(pos->bitboard[p + 6]);
-		eval -= num_p * values[p];
-		uint64_t bits = pos->bitboard[p + 6];
-		for (int i = 0; i < num_p; i++) {
+		bits = pos->bitboard[p + 6];
+		while (bits) {
 			int sq = __builtin_ctzll(bits) ^ 56;
 			bits &= bits - 1;
-			eval -= tables[p][sq];
+			eval -= (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
 		}
 	}
 	
 	return eval;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

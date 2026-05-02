@@ -14,11 +14,15 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Bitboard representation
 - Move ordering
 - Transposition tables (Zobrist hashing)
-- UCI protocol suport
+- UCI protocol support
 - Iterative deepening
 - Killer moves
 - History heuristic
 - Principal variation search (PVS)
+- Null move pruning
+- Aspiration windows
+- Late moves reduction (LMR)
+- Delta pruning in quiescence search
 
 ---
 
@@ -49,11 +53,11 @@ Compile:
 make
 ```
 
-Then download cutechess (or something similar). 
+Then download Cute Chess (or something similar). 
 
 tools -> settings -> engines -> add
 
-Enter a name and the address of the compiled engine.
+Path the executable.
 
 Enjoy!
 
@@ -61,21 +65,16 @@ Enjoy!
 
 ## Performance
 
-Search time depends on position complexity, depth, and move ordering efficiency.
+At depth 16, search time typically ranges from 1 to 10 seconds.
 
-At depth 10, search time typically ranges from 1s to 20s in simple positions (final and beggining), and even 2 min at very complex positions.
-
-According to Stockfish 18, it plays around 90% accurracy. It doesn’t mean much (I suck at chess), but the bot beats me easily.
-
-Many times the games finish with a draw becouse position repetition.
+According to Stockfish 18, it plays around 90% accuracy. It doesn't usually make huge mistakes. It doesn’t mean much (I suck at chess), but the bot beats me easily.
 
 ---
 
 ## Future work
 
 - Multi-threading
-- Null move purning
-- Improve evaluation: pawn stucture, mobility, differentiate game phases, center control...
+- Improve evaluation: pawn structure, mobility, center control...
 
 ---
 

@@ -8,11 +8,23 @@ Move killers[MAX_DEPTH][2] = {0};
 
 int score_move(Move *m, int ply) {
 	if (m->capture != -1) {
-		int values[12] = {100, 500, 300, 300, 900, 1000000, 100, 500, 300, 300, 900, 1000000};
+		int values[12] = {100, 500, 300, 315, 900, 1000000, 100, 500, 300, 315, 900, 1000000};
 		return values[m->capture] * 10 - values[m->pieza] + 2000000;
 	}
 
-	if ((m->pieza == 0 && m->to >= 56) || (m->pieza == 6 && m->to <= 7)) return 1900000;
+	if (m->to >= 56 && m->from >= 48) {
+		if (m->pieza == 4) return 1900000;
+		if (m->pieza == 1) return 1500000;
+		if (m->pieza == 3) return 1400000;
+		if (m->pieza == 2) return 1600000;
+	}
+
+	if (m->to <= 7 && m->from <= 15) {
+		if (m->pieza == 10) return 1900000;
+		if (m->pieza == 7) return 1500000;
+		if (m->pieza == 9) return 1400000;
+		if (m->pieza == 8) return 1600000;
+	}
 
 	if (killers[ply][0].from == m->from && killers[ply][0].to == m->to) return 900000;
 

@@ -21,15 +21,25 @@ int get_w_captures (Move *moves, Pos *pos) {
 		piezas &= piezas - 1;
 		attacks = get_w_pawn_captures(sq, enemy, pos->en_passant);
 		while (attacks) {
-			actual_move->from = sq;
-			actual_move->to = __builtin_ctzll(attacks);
+			int to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
-
-			actual_move->capture = pos->board[actual_move->to];
-			actual_move->pieza = 0;
-
-			actual_move++;
-			total_moves++;
+			if (to >= 56) {
+				for (int i = 1; i <= 4; i++) {
+					actual_move->to = to;
+					actual_move->from = sq;
+					actual_move->capture = pos->board[to];
+					actual_move->pieza = i;
+					actual_move++;
+					total_moves++;
+				}
+			} else {
+				actual_move->from = sq;
+				actual_move->to = to;
+				actual_move->capture = pos->board[to];
+				actual_move->pieza = 0;
+				actual_move++;
+				total_moves++;
+			}
 		}
 	}
 
@@ -138,15 +148,25 @@ int get_b_captures (Move *moves, Pos *pos) {
 		piezas &= piezas - 1;
 		attacks = get_b_pawn_captures(sq, enemy, pos->en_passant);
 		while (attacks) {
-			actual_move->from = sq;
-			actual_move->to = __builtin_ctzll(attacks);
+			int to = __builtin_ctzll(attacks);
 			attacks &= attacks - 1;
-
-			actual_move->pieza = 6;
-			actual_move->capture = pos->board[actual_move->to];
-
-			actual_move++;
-			total_moves++;
+			if (to <= 7) {
+				for (int i = 7; i <= 10; i++) {
+					actual_move->to = to;
+					actual_move->from = sq;
+					actual_move->capture = pos->board[to];
+					actual_move->pieza = i;
+					actual_move++;
+					total_moves++;
+				}
+			} else {
+				actual_move->from = sq;
+				actual_move->to = to;
+				actual_move->capture = pos->board[to];
+				actual_move->pieza = 6;
+				actual_move++;
+				total_moves++;
+			}
 		}
 	}
 

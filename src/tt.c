@@ -8,13 +8,13 @@ void tt_clear(void) {
 }
 
 TTEntry *tt_probe(uint64_t hash) {
-	TTEntry *e = &tt[hash % TT_SIZE];
+	TTEntry *e = &tt[hash & (TT_SIZE - 1)];
 	if (e->key == hash) return e;
 	return NULL;
 }
 
 void tt_store(uint64_t hash, int score, int depth, int flag, Move *best) {
-	TTEntry *e = &tt[hash % TT_SIZE];
+	TTEntry *e = &tt[hash & (TT_SIZE - 1)];
 	if (e->key == 0 || e->depth <= depth) {
 		e->key = hash;
 		e->score = (int32_t)score;

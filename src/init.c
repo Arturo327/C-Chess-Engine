@@ -79,5 +79,5 @@ void reset(Pos *pos) {
 		}
 	}
 	pos->side = 0;
-	pos->hash = compute_hash(pos, 0);
+	pos->hash = compute_hash(pos);
 }

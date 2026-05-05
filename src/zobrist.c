@@ -28,7 +28,7 @@ void init_zobrist(void) {
 	zob_ep[8] = 0;
 }
 
-uint64_t compute_hash(Pos *pos, int side) {
+uint64_t compute_hash(Pos *pos) {
 	uint64_t h = 0;
 	for (int p = 0; p < 12; p++) {
 		uint64_t bb = pos->bitboard[p];
@@ -38,7 +38,7 @@ uint64_t compute_hash(Pos *pos, int side) {
 			h ^= zob_pieces[p][sq];
 		}
 	}
-	if (side == 1) h ^= zob_turn;
+	if (pos->side == 1) h ^= zob_turn;
 	h ^= zob_castle[pos->castle & 0xF];
 	int ep_idx = (pos->en_passant == -1) ? 8 : (pos->en_passant & 7);
 	h ^= zob_ep[ep_idx];

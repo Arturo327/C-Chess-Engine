@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <get_moves.h>
+#include "get_moves.h"
 
 int get_w_moves (Move *moves, Pos *pos) {
 	uint64_t friendly = pos->bitboard[0] | pos->bitboard[1] | pos->bitboard[2] | pos->bitboard[3] | pos->bitboard[4] | pos->bitboard[5];

@@ -1,9 +1,26 @@
 #include "motor.h"
 #include <stdio.h>
 #include <stdint.h>
-#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+
+static int char_to_piece(char c) {
+	switch (c) {
+		case 'P': return 0;
+		case 'R': return 1;
+		case 'N': return 2;
+		case 'B': return 3;
+		case 'Q': return 4;
+		case 'K': return 5;
+		case 'p': return 6;
+		case 'r': return 7;
+		case 'n': return 8;
+		case 'b': return 9;
+		case 'q': return 10;
+		case 'k': return 11;
+	}
+	return -1;
+}
 
 static void get_move (char *s, Pos *pos) {
 	int from = (s[0] - 'a') + (s[1] - '1') * 8;
@@ -34,8 +51,57 @@ static void get_move (char *s, Pos *pos) {
 }
 
 static int parse_position(const char *line, Pos *pos) {
-	reset(pos);
 	int move_count = 0;
+	char *start = strstr(line, " startpos");
+	if (start) {
+		reset(pos);
+	} else {
+		int sq = 56;
+		char *position = strstr(line, " fen ");
+		if (!position) return move_count;
+		position += 5;
+		char *p = position;
+		memset(pos->board, 0xFF, 64);
+		memset(pos->bitboard, 0, 12 * sizeof(uint64_t));
+		while (*p && *p != ' ') {
+			if (*p == '/') {
+				sq -= 16;
+			} 
+			else if (*p >= '1' && *p <= '8') {
+				sq += *p - '0';
+			} 
+			else {
+				int pieza = char_to_piece(*p);
+				pos->board[sq] = pieza;
+				pos->bitboard[pieza] |= (1ULL << sq);
+				sq++;
+			}
+			p++;
+		}
+		p++;
+		pos->side = (*p == 'w') ? 0 : 1;
+		p += 2;
+		pos->castle = 0;
+		while (*p && *p != ' ') {
+			switch (*p) {
+				case 'K': pos->castle |= 1; break;
+				case 'Q': pos->castle |= 2; break;
+				case 'k': pos->castle |= 4; break;
+				case 'q': pos->castle |= 8; break;
+			}
+			p++;
+		}
+		p++;
+		if (*p == '-') {
+			pos->en_passant = -1;
+		} else {
+			int file = p[0] - 'a';
+			int rank = p[1] - '1';
+			pos->en_passant = file + rank * 8;
+		}
+		pos->hash = compute_hash(pos);
+	}
+
 	char *moves_ptr = strstr(line, " moves ");
 	if (moves_ptr) {
 		moves_ptr += 7;
@@ -48,7 +114,7 @@ static int parse_position(const char *line, Pos *pos) {
 			while (*p && *p != ' ' && *p != '\n') p++;
 			while (*p == ' ') p++;
 		}
-	}
+	} 
 	return move_count;
 }
 
@@ -82,7 +148,7 @@ int main () {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 16;
+			int depth = 14;
 			Move best = bot_move(depth, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),

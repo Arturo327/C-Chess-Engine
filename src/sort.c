@@ -34,6 +34,10 @@ int score_move(Move *m, int ply) {
 }
 
 void sort_moves(Move *moves, int count, int ply) {
+	int scores[count];
+	for (int i = 0; i < count; i++) 
+		scores[i] = score_move(&moves[i], ply);
+
 	for (int i = 0; i < count - 1; i++) {
 		int best = i;
 		int best_score = score_move(&moves[i], ply);
@@ -48,6 +52,10 @@ void sort_moves(Move *moves, int count, int ply) {
 			Move tmp = moves[i];
 			moves[i] = moves[best];
 			moves[best] = tmp;
+
+			int stmp = scores[i];
+			scores[i] = scores[best];
+			scores[best] = stmp;
 		}
 	}
 }

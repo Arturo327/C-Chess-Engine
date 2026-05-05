@@ -70,34 +70,36 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 
 	int original_alpha = alpha;
 
-	TTEntry *entry = tt_probe(pos->hash);
+	TTEntry *raw = tt_probe(pos->hash);
 	int score = 0;
-	if (entry) {
-    		score = entry->score;
-    		if (score > 99000) score -= ply;
-    		else if (score < -99000) score += ply;
-    		if (entry->depth >= depth) {
-        		if (best_out && entry->best.from != entry->best.to)
-            			*best_out = entry->best;
-        		if (entry->flag == TT_EXACT) return score;
-        		if (entry->flag == TT_LOWER && score >= beta) return score;
-        		if (entry->flag == TT_UPPER && score <= alpha) return score;
-    		}
+	TTEntry entry;
+	if (raw) {
+		entry = *raw;
+		score = entry.score;
+		if (score > 99000) score -= ply;
+		else if (score < -99000) score += ply;
+		if (entry.depth >= depth) {
+			if (best_out && entry.best.from != entry.best.to)
+				*best_out = entry.best;
+			if (entry.flag == TT_EXACT) return score;
+			if (entry.flag == TT_LOWER && score >= beta) return score;
+			if (entry.flag == TT_UPPER && score <= alpha) return score;
+		}
 	}
 
 	if (depth >= 3 && !is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos)) {
-    		Pos null_pos = *pos;
-    		null_pos.side ^= 1;
-    		null_pos.hash ^= zob_turn;
+		Pos null_pos = *pos;
+		null_pos.side ^= 1;
+		null_pos.hash ^= zob_turn;
 		int old_ep_idx = (null_pos.en_passant == -1) ? 8 : (null_pos.en_passant & 7);
 		null_pos.en_passant = -1;
 		null_pos.hash ^= zob_ep[old_ep_idx];
 
-    		int reduction = 3;
+		int reduction = 3;
 		int c = depth - 1 - reduction;
 		if (c < 0) c = 0;
-    		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL);
-    		if (null_eval >= beta) return beta;
+		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL);
+		if (null_eval >= beta) return beta;
 	}
 
 	Move moves[256];
@@ -107,10 +109,10 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 	Move *actual_move = moves;
 
 	Move tt_best_move = {0};
-	int has_tt_move = (entry != NULL && entry->best.from != entry->best.to);
+	int has_tt_move = (raw != NULL && raw->best.from != raw->best.to);
 
 	if (has_tt_move) {
-		tt_best_move = entry->best;
+		tt_best_move = entry.best;
 		for (int i = 0; i < total_moves; i++) {
 			if (actual_move->from == tt_best_move.from && actual_move->to == tt_best_move.to) {
 				Move tmp = moves[0];
@@ -144,10 +146,10 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
 		} else {
 			int reduction = 0;
-    			if (i >= 3 && depth >= 3 && actual_move->capture == -1) {
-        			reduction = 1;
-        			if (i >= 6) reduction = depth / 3;
-    			}
+			if (i >= 3 && depth >= 3 && actual_move->capture == -1) {
+				reduction = 1;
+				if (i >= 6) reduction = depth / 3;
+			}
 			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL);
 			if (eval > alpha && eval < beta) {
 				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
@@ -194,22 +196,36 @@ Move bot_move (int depth, Pos *pos) {
 	shift_killers();
 	int prev_score = 0;
 	for (int i = 1; i <= depth; i++) {
-		int delta = 50;
-		int alpha = prev_score - delta;
-		int beta = prev_score + delta;
 		int score;
-		while (1) {
+		for (int p = 0; p < 12; p++)
+			for (int sq = 0; sq < 64; sq++)
+				history[p][sq] >>= 1;
+		if (i < 4) {
 			score = negamax(pos, i, 0, -1000000, 1000000, &best_move);
-			if (score <= alpha) alpha -= delta * 2;
-            		else if (score >= beta) beta += delta * 2;
-            		else break;
-            		delta *= 2;
+			prev_score = score;
+		} else {
+			int delta = 50;
+			int alpha = prev_score - delta;
+			int beta = prev_score + delta;
+			int alpha_delta = delta;
+			int beta_delta = delta;
+			while (1) {
+				score = negamax(pos, i, 0, alpha, beta, &best_move);
+				if (score <= alpha) {
+					alpha_delta <<= 1;
+					alpha = score - alpha_delta;
+				}
+				else if (score >= beta) {
+					beta_delta <<= 1;
+					beta = score + beta_delta;
+				}
+				else break;
+			}
+			prev_score = score;
 		}
-		prev_score = score;
 	}
 	return best_move;
 }
-
 
 
 

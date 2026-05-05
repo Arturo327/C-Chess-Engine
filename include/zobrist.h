@@ -10,6 +10,6 @@ extern uint64_t zob_castle[16];
 extern uint64_t zob_ep[9];
 
 void init_zobrist(void);
-uint64_t compute_hash(Pos *pos, int withe);
+uint64_t compute_hash(Pos *pos);
 
 #endif

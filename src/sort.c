@@ -40,9 +40,9 @@ void sort_moves(Move *moves, int count, int ply) {
 
 	for (int i = 0; i < count - 1; i++) {
 		int best = i;
-		int best_score = score_move(&moves[i], ply);
+		int best_score = scores[i];
 		for (int j = i + 1; j < count; j++) {
-			int act_score = score_move(&moves[j], ply);
+			int act_score = scores[j];
 			if (act_score > best_score) {
 				best = j;
 				best_score = act_score;

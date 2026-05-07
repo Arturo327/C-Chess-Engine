@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 
+uint64_t rep_stack[REP_STACK_SIZE];
+int rep_top = 0;
+
 static void update_history(Move *m, int depth) {
 	if (m->capture != -1) return;
 	history[m->pieza][m->to] += depth * depth;
@@ -64,8 +67,20 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 	return alpha;
 }
 
-int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) {
-	if (depth == 0) return quiescence(pos, 5, alpha, beta);
+int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
+	if (null_allowed) {
+		for (int i = rep_top - 2; i >= 0; i -= 2) {
+			if (rep_stack[i] == pos->hash) {
+				return 0;
+			}
+		}
+		rep_stack[rep_top++] = pos->hash;
+	}
+	if (depth == 0) {
+		int result = quiescence(pos, 5, alpha, beta);
+		if (null_allowed) rep_top--;
+		return result;
+	}
 	int side = pos->side;
 
 	int original_alpha = alpha;
@@ -81,13 +96,26 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 		if (entry.depth >= depth) {
 			if (best_out && entry.best.from != entry.best.to)
 				*best_out = entry.best;
-			if (entry.flag == TT_EXACT) return score;
-			if (entry.flag == TT_LOWER && score >= beta) return score;
-			if (entry.flag == TT_UPPER && score <= alpha) return score;
+			if (entry.flag == TT_EXACT) {
+				if (null_allowed) rep_top--; 
+				return score;
+			}
+			if (entry.flag == TT_LOWER && score >= beta) {
+				if (null_allowed) rep_top--; 
+				return score;
+			}
+			if (entry.flag == TT_UPPER && score <= alpha) {
+				if (null_allowed) rep_top--; 
+				return score;
+			}
 		}
 	}
 
-	if (depth >= 3 && !is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos)) {
+	int non_pawn_material = __builtin_popcountll(
+		pos->bitboard[side ? 7 : 1] | pos->bitboard[side ? 8 : 2] |
+		pos->bitboard[side ? 9 : 3] | pos->bitboard[side ? 10 : 4]);
+
+	if (depth >= 3 && non_pawn_material && null_allowed && !is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos)) {
 		Pos null_pos = *pos;
 		null_pos.side ^= 1;
 		null_pos.hash ^= zob_turn;
@@ -95,11 +123,15 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 		null_pos.en_passant = -1;
 		null_pos.hash ^= zob_ep[old_ep_idx];
 
-		int reduction = 3;
+		int reduction = 3 + depth / 6;
 		int c = depth - 1 - reduction;
 		if (c < 0) c = 0;
-		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL);
-		if (null_eval >= beta) return beta;
+		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL, 0);
+		
+		if (null_eval >= beta) {
+			rep_top--;
+			return beta;
+		}
 	}
 
 	Move moves[256];
@@ -140,19 +172,19 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 			actual_move++;
 			continue;
 		}
-		
+
 		int eval;
 		if (i == 0) {
-			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
+			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
 		} else {
 			int reduction = 0;
 			if (i >= 3 && depth >= 3 && actual_move->capture == -1) {
 				reduction = 1;
 				if (i >= 6) reduction = depth / 3;
 			}
-			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL);
+			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL, 1);
 			if (eval > alpha && eval < beta) {
-				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL);
+				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
 			}
 		}
 
@@ -170,6 +202,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 			update_history(actual_move, depth);
 			break;
 		}
+
 		actual_move++;
 	}
 
@@ -179,6 +212,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 		int a = score;
 		if (score < -99000) a = score - ply;
 		tt_store(pos->hash, a, depth, TT_EXACT, NULL);
+		if (null_allowed) rep_top--;
 		return score;
 	}
 
@@ -188,6 +222,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out) 
 	else flag = TT_EXACT;
 	tt_store(pos->hash, maxEval, depth, flag, &best_move);
 
+	if (null_allowed) rep_top--;
 	return maxEval;
 }
 
@@ -200,8 +235,8 @@ Move bot_move (int depth, Pos *pos) {
 		for (int p = 0; p < 12; p++)
 			for (int sq = 0; sq < 64; sq++)
 				history[p][sq] >>= 1;
-		if (i < 4) {
-			score = negamax(pos, i, 0, -1000000, 1000000, &best_move);
+		if (i < 3) {
+			score = negamax(pos, i, 0, -1000000, 1000000, &best_move, 1);
 			prev_score = score;
 		} else {
 			int delta = 50;
@@ -210,7 +245,7 @@ Move bot_move (int depth, Pos *pos) {
 			int alpha_delta = delta;
 			int beta_delta = delta;
 			while (1) {
-				score = negamax(pos, i, 0, alpha, beta, &best_move);
+				score = negamax(pos, i, 0, alpha, beta, &best_move, 1);
 				if (score <= alpha) {
 					alpha_delta <<= 1;
 					alpha = score - alpha_delta;

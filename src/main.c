@@ -102,6 +102,9 @@ static int parse_position(const char *line, Pos *pos) {
 		pos->hash = compute_hash(pos);
 	}
 
+	rep_top = 0;
+	rep_stack[rep_top++] = pos->hash;
+
 	char *moves_ptr = strstr(line, " moves ");
 	if (moves_ptr) {
 		moves_ptr += 7;
@@ -109,6 +112,7 @@ static int parse_position(const char *line, Pos *pos) {
 		while (*p && *p != '\n') {
 			if (p[0] >= 'a' && p[0] <= 'h' && p[2] >= 'a' && p[2] <= 'h') {
 				get_move(p, pos);
+				rep_stack[rep_top++] = pos->hash;
 				move_count++;
 			}
 			while (*p && *p != ' ' && *p != '\n') p++;
@@ -128,7 +132,13 @@ int main () {
 	char line[4096];
 	int num_moves = 0;
 	while (fgets(line, sizeof(line), stdin)) {
-		if (strncmp(line, "uci", 3) == 0) {
+		if (strncmp(line, "ucinewgame", 10) == 0) {
+			reset(&pos);
+			tt_clear();
+			memset(history, 0, sizeof(history));
+			memset(killers, 0, sizeof(killers));
+
+		} else if (strncmp(line, "uci", 3) == 0) {
 			printf("id name R2Chess\n");
 			printf("id author Arturo327\n");
 			printf("uciok\n");
@@ -138,17 +148,11 @@ int main () {
 			printf("readyok\n");
 			fflush(stdout);
 
-		} else if (strncmp(line, "ucinewgame", 10) == 0) {
-			reset(&pos);
-			tt_clear();
-			memset(history, 0, sizeof(history));
-			memset(killers, 0, sizeof(killers));
-
 		} else if (strncmp(line, "position", 8) == 0) {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 14;
+			int depth = 16;
 			Move best = bot_move(depth, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),

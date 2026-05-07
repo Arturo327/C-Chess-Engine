@@ -18,7 +18,11 @@ typedef struct {
 	Move best;
 } TTEntry;
 
-extern TTEntry tt[TT_SIZE];
+typedef struct {
+	TTEntry bucket[2];
+} TTCluster;
+
+extern TTCluster tt[TT_SIZE];
 
 void tt_clear(void);
 TTEntry *tt_probe(uint64_t hash);

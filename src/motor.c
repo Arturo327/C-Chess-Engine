@@ -37,33 +37,45 @@ void shift_killers(void) {
 
 int quiescence (Pos *pos, int depth, int alpha, int beta) {
 	int side = pos->side;
-	int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
-	if (depth == 0) return stand_pat;
+	int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
+	int in_check = is_attacked(king_sq, side, pos);
 
-	if (stand_pat + 1000 < alpha) return alpha;
-	if (stand_pat >= beta) return beta;
-	if (stand_pat > alpha) alpha = stand_pat;
+	if (!in_check) {
+		int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		if (depth == 0) return stand_pat;
+		if (stand_pat + 1000 < alpha) return alpha;
+		if (stand_pat >= beta) return beta;
+		if (stand_pat > alpha) alpha = stand_pat;
+	} else {
+		if (depth < -3) return (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+	}
 
-	Move captures[64];
-	Move *actual_move = captures;
+	Move moves[256];
 	int count;
-	if (side) count = get_b_captures(captures, pos);
-	else count = get_w_captures(captures, pos);
-	sort_moves(captures, count, 0);
+	if (in_check) {
+		if (side) count = get_b_moves(moves, pos);
+		else count = get_w_moves(moves, pos);
+	} else {
+		if (side) count = get_b_captures(moves, pos);
+		else count = get_w_captures(moves, pos);
+	}
+	sort_moves(moves, count, 0);
 
+	int legal = 0;
 	for (int i = 0; i < count; i++) {
 		Pos child = *pos;
-		apply_move(actual_move, &child);
+		apply_move(&moves[i], &child);
 
-		int king_sq = __builtin_ctzll(child.bitboard[side ? 11 : 5]);
-		if (is_attacked(king_sq, side, &child)) { actual_move++; continue; }
+		int ksq = __builtin_ctzll(child.bitboard[side ? 11 : 5]);
+		if (is_attacked(ksq, side, &child)) continue;
+		legal++;
 
 		int eval = -quiescence(&child, depth - 1, -beta, -alpha);
-
 		if (eval > alpha) alpha = eval;
 		if (alpha >= beta) return beta;
-		actual_move++;
 	}
+
+	if (in_check && legal == 0) return -100000;
 	return alpha;
 }
 
@@ -115,7 +127,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		pos->bitboard[side ? 7 : 1] | pos->bitboard[side ? 8 : 2] |
 		pos->bitboard[side ? 9 : 3] | pos->bitboard[side ? 10 : 4]);
 
-	if (depth >= 3 && non_pawn_material && null_allowed && !is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos)) {
+	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos);
+
+	if (depth >= 3 && non_pawn_material && null_allowed && !en_jaque) {
 		Pos null_pos = *pos;
 		null_pos.side ^= 1;
 		null_pos.hash ^= zob_turn;
@@ -173,12 +187,15 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			continue;
 		}
 
+		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
+    		int da_jaque = is_attacked(opp_king, !side, &child);
+
 		int eval;
 		if (i == 0) {
 			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
 		} else {
 			int reduction = 0;
-			if (i >= 3 && depth >= 3 && actual_move->capture == -1) {
+			if (i >= 3 && !da_jaque && !en_jaque && depth >= 3 && actual_move->capture == -1) {
 				reduction = 1;
 				if (i >= 6) reduction = depth / 3;
 			}

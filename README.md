@@ -24,6 +24,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Late moves reduction (LMR)
 - Delta pruning in quiescence search
 - Threefold repetition detection
+- Magic Bitboards for move generation
 
 ---
 
@@ -66,7 +67,7 @@ Enjoy!
 
 ## Performance
 
-At depth 16, search time typically ranges between 1 and 7 seconds.
+At depth 16, search typically lasts less than 2 seconds.
 
 According to Stockfish 18, it plays around 90% accuracy. It doesn't usually make huge mistakes. It doesn’t mean much (I suck at chess), but the bot beats me easily.
 

@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Iinclude -O2 -march=native
-OBJ = build/main.o build/motor.o build/eval.o build/movegen.o build/get_moves.o build/get_captures.o build/make_move.o build/init.o build/sort.o build/zobrist.o build/tt.o
+CFLAGS = -Iinclude -O2 -march=native -g
+OBJ = build/main.o build/motor.o build/eval.o build/movegen.o build/get_moves.o build/get_captures.o build/make_move.o build/init.o build/sort.o build/zobrist.o build/tt.o build/bitboards.o
 
 all: build/chess
 
@@ -39,6 +39,9 @@ build/zobrist.o: src/zobrist.c
 
 build/tt.o: src/tt.c
 	$(CC) $(CFLAGS) -c src/tt.c -o build/tt.o
+
+build/bitboards.o: src/bitboards.c
+	$(CC) $(CFLAGS) -c src/bitboards.c -o build/bitboards.o
 
 run: build/chess
 	./build/chess

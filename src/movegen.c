@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "movegen.h"
 #include "make_move.h"
+#include "bitboards.h"
 
 int is_attacked(int sq, int by_white, Pos *pos) {
 	uint64_t friendly = by_white ?
@@ -85,44 +86,15 @@ uint64_t get_b_pawn_captures (int from, uint64_t enemy, int en_passant) {
 }
 
 uint64_t get_rook_attacks (int from, uint64_t friendly, uint64_t enemy) {
-	uint64_t attacks = 0;
-	static const int dirs[4] = {1, -1, 8, -8};
-	for (int i = 0; i < 4; i++) {
-		int a = from;
-		while (1) {
-			int next = a + dirs[i];
-			if (next < 0 || next > 63) break;
-			if (dirs[i] == 1 && (next & 7) == 0) break;
-			if (dirs[i] == -1 && (next & 7) == 7) break;
-			uint64_t bit = 1ULL << next;
-			if (bit & friendly) break;
-			attacks |= bit;
-			if (bit & enemy) break;
-			a = next;
-		}
-	}
-	return attacks;
+	uint64_t occ = (friendly | enemy) & rook_masks[from];
+	int idx = (occ * rook_magics[from]) >> (64 - rook_bits[from]);
+	return rook_attack_table[from][idx] & ~friendly;
 }
 
 uint64_t get_alfil_attacks (int from, uint64_t friendly, uint64_t enemy) {
-	uint64_t attacks = 0;
-	static const int dirs[4] = {9, -9, 7, -7};
-	for (int i = 0; i < 4; i++) {
-		int a = from;
-		while (1) {
-			int next = a + dirs[i];
-			if (next < 0 || next > 63) break;
-			if ((dirs[i] == 9 || dirs[i] == -7) && (next & 7) == 0) break;
-			if ((dirs[i] == -9 || dirs[i] == 7) && (next & 7) == 7) break;
-
-			uint64_t bit = 1ULL << next;
-			if (bit & friendly) break;
-			attacks |= bit;
-			if (bit & enemy) break;
-			a = next;
-		}
-	}
-	return attacks;
+	uint64_t occ = (friendly | enemy) & alfil_masks[from];
+	int idx = (occ * alfil_magics[from]) >> (64 - alfil_bits[from]);
+	return alfil_attack_table[from][idx] & ~friendly;
 }
 
 uint64_t get_queen_attacks (int from, uint64_t friendly, uint64_t enemy) {

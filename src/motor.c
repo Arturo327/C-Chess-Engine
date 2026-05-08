@@ -81,20 +81,13 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
 	if (null_allowed) {
-		for (int i = rep_top - 2; i >= 0; i -= 2) {
-			if (rep_stack[i] == pos->hash) {
-				return 0;
-			}
+		for (int i = rep_top - 3; i >= 0; i -= 2) {
+			if (rep_stack[i] == pos->hash) return 0;
 		}
-		rep_stack[rep_top++] = pos->hash;
 	}
-	if (depth == 0) {
-		int result = quiescence(pos, 5, alpha, beta);
-		if (null_allowed) rep_top--;
-		return result;
-	}
-	int side = pos->side;
+	if (depth == 0) return quiescence(pos, 5, alpha, beta);
 
+	int side = pos->side;
 	int original_alpha = alpha;
 
 	TTEntry *raw = tt_probe(pos->hash);
@@ -108,18 +101,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		if (entry.depth >= depth) {
 			if (best_out && entry.best.from != entry.best.to)
 				*best_out = entry.best;
-			if (entry.flag == TT_EXACT) {
-				if (null_allowed) rep_top--; 
-				return score;
-			}
-			if (entry.flag == TT_LOWER && score >= beta) {
-				if (null_allowed) rep_top--; 
-				return score;
-			}
-			if (entry.flag == TT_UPPER && score <= alpha) {
-				if (null_allowed) rep_top--; 
-				return score;
-			}
+			if (entry.flag == TT_EXACT) return score;
+			if (entry.flag == TT_LOWER && score >= beta) return score;
+			if (entry.flag == TT_UPPER && score <= alpha) return score;
 		}
 	}
 
@@ -142,10 +126,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		if (c < 0) c = 0;
 		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL, 0);
 		
-		if (null_eval >= beta) {
-			rep_top--;
-			return beta;
-		}
+		if (null_eval >= beta) return beta;
 	}
 
 	Move moves[256];
@@ -187,6 +168,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			continue;
 		}
 
+		rep_stack[rep_top++] = child.hash;
+
 		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
     		int da_jaque = is_attacked(opp_king, !side, &child);
 
@@ -204,6 +187,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
 			}
 		}
+
+		rep_top--;
 
 		if (eval > maxEval) {
 			maxEval = eval;
@@ -229,7 +214,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		int a = score;
 		if (score < -99000) a = score - ply;
 		tt_store(pos->hash, a, depth, TT_EXACT, NULL);
-		if (null_allowed) rep_top--;
 		return score;
 	}
 
@@ -239,7 +223,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	else flag = TT_EXACT;
 	tt_store(pos->hash, maxEval, depth, flag, &best_move);
 
-	if (null_allowed) rep_top--;
 	return maxEval;
 }
 

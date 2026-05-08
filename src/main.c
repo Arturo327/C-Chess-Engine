@@ -125,6 +125,7 @@ static int parse_position(const char *line, Pos *pos) {
 int main () {
 	generate_horse_table();
 	generate_king_table();
+	init_magics();
 	init_zobrist();
 	tt_clear();   
 	Pos pos;
@@ -152,7 +153,7 @@ int main () {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 16;
+			int depth = 20;
 			Move best = bot_move(depth, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),

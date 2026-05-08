@@ -11,6 +11,7 @@
 #include "sort.h"
 #include "tt.h"
 #include "zobrist.h"
+#include "bitboards.h"
 
 #define REP_STACK_SIZE 1024
 extern uint64_t rep_stack[REP_STACK_SIZE];

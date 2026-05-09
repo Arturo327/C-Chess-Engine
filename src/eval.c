@@ -4,7 +4,7 @@
 
 #include <eval.h>
 
-static int values[6] = {100, 500, 300, 315, 900, 100000};
+int values[6] = {100, 500, 310, 330, 900, 100000};
 static int pawn_mg_table[64] = {
 	0,  0,	0,  0,	0,  0,	0,  0,
 	5, 10, 10,-20,-20, 10, 10,  5,
@@ -125,9 +125,56 @@ static int king_eg_table[64] = {
 	-30,-10,  0,  0,  0,  0,-10,-30,
 	-50,-30,-30,-30,-30,-30,-30,-50
 };
+
+static int passed_mg[6] = {5, 10, 20, 35, 60, 100};
+static int passed_eg[6] = {15, 25, 45, 70, 110, 170};
 static int *tables_mg[6] = {pawn_mg_table, rook_mg_table, horse_mg_table, alfil_mg_table, queen_mg_table, king_mg_table};
 static int *tables_eg[6] = {pawn_eg_table, rook_eg_table, horse_eg_table, alfil_eg_table, queen_eg_table, king_eg_table};
 static int fase_values[6] = {0, 2, 1, 1, 4, 0};
+
+static int passed_withe_bonus (int sq, uint64_t enemy_pawn, uint64_t friend_rook, uint64_t enemy_rook, int fase) {
+	int col = sq % 8;
+	int fila = sq >> 3;
+	uint64_t front = 0;
+	for (int i = sq + 8; i < 64; i += 8) front |= (1ULL << i);
+	if (col > 0) for (int i = sq + 7; i < 64; i += 8) front |= (1ULL << i);
+	if (col < 7) for (int i = sq + 9; i < 64; i += 8) front |= (1ULL << i);
+
+	if (!(front & enemy_pawn)) {
+		int bonus = 0;
+		int idx = fila - 2;
+        	if (idx >= 0 && idx < 6) {
+            		bonus += (passed_mg[idx] * fase + passed_eg[idx] * (24 - fase)) / 24;
+       		}
+		uint64_t col_behind = 0;
+    		for (int r = 0; r < fila; r++) col_behind |= (1ULL << (r * 8 + col));
+    		if (friend_rook & col_behind) bonus += (0 * fase + 20 * (24 - fase)) / 24;
+    		if (enemy_rook & col_behind) bonus -= (0 * fase + 15 * (24 - fase)) / 24;
+		return bonus;
+	} else return 0;
+}
+
+static int passed_black_bonus (int sq, uint64_t enemy_pawn, uint64_t friend_rook, uint64_t enemy_rook, int fase) {
+	int col = sq % 8;
+	int fila = sq >> 3;
+	uint64_t front = 0;
+	for (int i = sq - 8; i >= 0; i -= 8) front |= (1ULL << i);
+	if (col > 0) for (int i = sq - 9; i >= 0; i -= 8) front |= (1ULL << i);
+	if (col < 7) for (int i = sq - 7; i >= 0; i -= 8) front |= (1ULL << i);
+
+	int bonus;
+	if (!(front & enemy_pawn)) {
+		int idx = 5 - fila;
+        	if (idx >= 0 && idx < 6) {
+            		bonus = (passed_mg[idx] * fase + passed_eg[idx] * (24 - fase)) / 24;
+       		}
+		uint64_t col_behind = 0;
+    		for (int r = fila - 1; r >= 0; r--) col_behind |= (1ULL << (r * 8 + col));
+    		if (friend_rook & col_behind) bonus += (20 * (24 - fase)) / 24;
+    		if (enemy_rook & col_behind) bonus -= (15 * (24 - fase)) / 24;
+		return bonus;
+	} else return 0;
+}
 
 int eval_pos (Pos *pos) {
 	int eval = 0;
@@ -146,12 +193,14 @@ int eval_pos (Pos *pos) {
 			int sq = __builtin_ctzll(bits);
 			bits &= bits - 1;
 			eval += (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
+			if (!p) eval += passed_withe_bonus(sq, pos->bitboard[6], pos->bitboard[1], pos->bitboard[7], fase);
 		}
 		bits = pos->bitboard[p + 6];
 		while (bits) {
 			int sq = __builtin_ctzll(bits) ^ 56;
 			bits &= bits - 1;
 			eval -= (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
+			if (p == 6) eval -= passed_black_bonus(sq, pos->bitboard[0], pos->bitboard[7], pos->bitboard[1], fase);
 		}
 	}
 	

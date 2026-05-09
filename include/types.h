@@ -2,6 +2,8 @@
 #define TYPES_H
 #include <stdint.h>
 
+extern int values[6];
+
 typedef struct {
 	unsigned int from : 6;
 	unsigned int to : 6;

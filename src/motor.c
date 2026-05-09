@@ -171,7 +171,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		rep_stack[rep_top++] = child.hash;
 
 		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
-    		int da_jaque = is_attacked(opp_king, !side, &child);
+		int da_jaque = is_attacked(opp_king, !side, &child);
 
 		int eval;
 		if (i == 0) {
@@ -258,6 +258,19 @@ Move bot_move (int depth, Pos *pos) {
 			}
 			prev_score = score;
 		}
+	}
+	if (best_move.from == best_move.to) {
+		Move fallback_moves[256];
+		int count = pos->side ? get_b_moves(fallback_moves, pos) : get_w_moves(fallback_moves, pos);
+		for (int i = 0; i < count; i++) {
+			Pos tmp = *pos;
+			apply_move(&fallback_moves[i], &tmp);
+			int ksq = __builtin_ctzll(tmp.bitboard[pos->side ? 11 : 5]);
+			if (!is_attacked(ksq, pos->side, &tmp)) {
+				best_move = fallback_moves[i];
+				break;
+			}
+		}	
 	}
 	return best_move;
 }

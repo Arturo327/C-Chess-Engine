@@ -8,8 +8,7 @@ Move killers[MAX_DEPTH][2] = {0};
 
 int score_move(Move *m, int ply) {
 	if (m->capture != -1) {
-		int values[12] = {100, 500, 300, 315, 900, 1000000, 100, 500, 300, 315, 900, 1000000};
-		return values[m->capture] * 10 - values[m->pieza] + 2000000;
+		return values[m->capture % 6] * 10 - values[m->pieza % 6] + 2000000;
 	}
 
 	if (m->to >= 56 && m->from >= 48) {

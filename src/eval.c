@@ -223,7 +223,7 @@ int eval_pos (Pos *pos) {
 	for (int i = 0; i < 8; i++) {
 		fila_mask = 0x0101010101010101ULL << i;
 		int w = __builtin_popcountll(pos->bitboard[0] & fila_mask);
-    		int b = __builtin_popcountll(pos->bitboard[6] & file_mask);
+    		int b = __builtin_popcountll(pos->bitboard[6] & fila_mask);
 
     		if (w > 1) eval -= (w - 1) * 15;
     		if (b > 1) eval += (b - 1) * 15;

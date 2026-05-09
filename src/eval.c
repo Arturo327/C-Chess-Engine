@@ -204,14 +204,15 @@ int eval_pos (Pos *pos) {
 		}
 		bits = pos->bitboard[p + 6];
 		while (bits) {
-			int sq = __builtin_ctzll(bits) ^ 56;
+			int sq_real = __builtin_ctzll(bits);
+			int sq = sq_real ^ 56;
 			bits &= bits - 1;
 			eval -= (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
-			if (!p) eval -= passed_black_bonus(sq, pos->bitboard[0], pos->bitboard[7], pos->bitboard[1], fase);
+			if (!p) eval -= passed_black_bonus(sq_real, pos->bitboard[0], pos->bitboard[7], pos->bitboard[1], fase);
 			if (p == 1) {
 				uint64_t col = 0x0101010101010101ULL << (sq % 8);
 				if (!(all_pawns & col)) eval += 20;
-				else if (!(pos->bitboard[6] & col)) eval += 10;
+				else if (!(pos->bitboard[6] & col)) eval -= 10;
 			}
 		}
 	}

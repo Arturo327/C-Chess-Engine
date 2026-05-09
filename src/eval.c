@@ -169,7 +169,7 @@ static int passed_black_bonus (int sq, uint64_t enemy_pawn, uint64_t friend_rook
 			bonus += (passed_mg[idx] * fase + passed_eg[idx] * (24 - fase)) / 24;
 		}
 		uint64_t col_behind = 0;
-		for (int r = fila - 1; r >= 0; r--) col_behind |= (1ULL << (r * 8 + col));
+		for (int r = fila + 1; r < 8; r++) col_behind |= (1ULL << (r * 8 + col));
 		if (friend_rook & col_behind) bonus += (20 * (24 - fase)) / 24;
 		if (enemy_rook & col_behind) bonus -= (15 * (24 - fase)) / 24;
 	}
@@ -211,7 +211,7 @@ int eval_pos (Pos *pos) {
 			if (!p) eval -= passed_black_bonus(sq_real, pos->bitboard[0], pos->bitboard[7], pos->bitboard[1], fase);
 			if (p == 1) {
 				uint64_t col = 0x0101010101010101ULL << (sq % 8);
-				if (!(all_pawns & col)) eval += 20;
+				if (!(all_pawns & col)) eval -= 20;
 				else if (!(pos->bitboard[6] & col)) eval -= 10;
 			}
 		}
@@ -220,11 +220,11 @@ int eval_pos (Pos *pos) {
 	if (__builtin_popcountll(pos->bitboard[3]) >= 2) eval += 30;
 	if (__builtin_popcountll(pos->bitboard[9]) >= 2) eval -= 30;
 
-	uint64_t fila_mask;
+	uint64_t col_mask;
 	for (int i = 0; i < 8; i++) {
-		fila_mask = 0x0101010101010101ULL << i;
-		int w = __builtin_popcountll(pos->bitboard[0] & fila_mask);
-    		int b = __builtin_popcountll(pos->bitboard[6] & fila_mask);
+		col_mask = 0x0101010101010101ULL << i;
+		int w = __builtin_popcountll(pos->bitboard[0] & col_mask);
+    		int b = __builtin_popcountll(pos->bitboard[6] & col_mask);
 
     		if (w > 1) eval -= (w - 1) * 15;
     		if (b > 1) eval += (b - 1) * 15;

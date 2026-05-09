@@ -67,15 +67,16 @@ Enjoy!
 
 ## Performance
 
-At depth 16, search typically lasts less than 2 seconds.
+At depth 16, search typically lasts less than 5 seconds. The complexity of the evaluation function significantly lengthens the search time.
 
-According to Stockfish 18, it plays around 90% accuracy. It doesn't usually make huge mistakes. It doesn’t mean much (I suck at chess), but the bot beats me easily.
+According to Stockfish 18, at depth 16 it plays around 90% accuracy and ELO score around 2200. It doesn't usually make huge mistakes. It doesn’t mean much (I suck at chess), but the bot beats me easily.
 
 ---
 
 ## Future work
 
 - Multi-threading
+- Time management
 - Improve evaluation: pawn structure, mobility, center control...
 
 ---

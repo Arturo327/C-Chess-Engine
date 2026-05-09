@@ -153,7 +153,7 @@ int main (int argc, char *argv[]) {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 16;
+			int depth = 20;
 			Move best = bot_move(depth, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),

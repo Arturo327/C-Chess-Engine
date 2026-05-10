@@ -70,10 +70,15 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 		if (side) count = get_b_captures(moves, pos);
 		else count = get_w_captures(moves, pos);
 	}
-	sort_moves(moves, count, 0);
+	sort_moves(moves, count, 0, pos);
 
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
+		if (!in_check && moves[i].capture != -1) {
+        		int see_val = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
+        		if (see_val < 0) continue;
+    		}
+
 		Pos child = *pos;
 		apply_move(&moves[i], &child);
 
@@ -169,7 +174,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply);
+	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
 
 	int maxEval = -1000000;
 	Pos child;
@@ -280,6 +285,8 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			}
 		}
 		if (interrupted) break;
+		printf("info depth %d score cp %d\n", i, score);
+    		fflush(stdout);
 		best_move = candidate;
 		prev_score = score;
 		if (score > 99000 || score < -99000) break;

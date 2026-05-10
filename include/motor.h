@@ -9,6 +9,7 @@
 #include "eval.h"
 #include "types.h"
 #include "sort.h"
+#include "see.h"
 #include "tt.h"
 #include "zobrist.h"
 #include "bitboards.h"

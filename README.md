@@ -12,7 +12,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Alpha-beta pruning search
 - Quiescence search to reduce horizon effect
 - Bitboard representation
-- Move ordering
+- Move ordering with SEE
 - Transposition tables (Zobrist hashing)
 - UCI protocol support
 - Iterative deepening

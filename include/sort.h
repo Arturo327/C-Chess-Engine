@@ -10,6 +10,6 @@
 extern int history[12][64];
 extern Move killers[MAX_DEPTH][2];
 
-void sort_moves (Move *moves, int count, int ply);
+void sort_moves (Move *moves, int count, int ply, Pos *pos);
 
 #endif

@@ -1,4 +1,5 @@
 #include "sort.h"
+#include "see.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -6,9 +7,14 @@
 int history[12][64] = {0};
 Move killers[MAX_DEPTH][2] = {0};
 
-int score_move(Move *m, int ply) {
+static int score_move(Move *m, int ply, Pos *pos) {
 	if (m->capture != -1) {
-		return values[m->capture % 6] * 10 - values[m->pieza % 6] + 2000000;
+		int see_val = see(pos, m->to, values[m->capture % 6], m->from, values[m->pieza % 6]);
+        	if (see_val >= 0) {
+            		return 2000000 + see_val;
+        	} else {
+            		return 1000000 + see_val;
+        	}
 	}
 
 	if (m->to >= 56 && m->from >= 48) {
@@ -32,10 +38,10 @@ int score_move(Move *m, int ply) {
 	return history[m->pieza][m->to];
 }
 
-void sort_moves(Move *moves, int count, int ply) {
+void sort_moves(Move *moves, int count, int ply, Pos *pos) {
 	int scores[count];
 	for (int i = 0; i < count; i++) 
-		scores[i] = score_move(&moves[i], ply);
+		scores[i] = score_move(&moves[i], ply, pos);
 
 	for (int i = 0; i < count - 1; i++) {
 		int best = i;

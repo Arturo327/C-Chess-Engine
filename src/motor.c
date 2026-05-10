@@ -3,9 +3,20 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <time.h>
 
 uint64_t rep_stack[REP_STACK_SIZE];
 int rep_top = 0;
+
+static int interrupted = 0;
+static long long nodes = 0;
+static long long deadline = 0;
+
+static long long get_time_ms(void) {
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
+}
 
 static void update_history(Move *m, int depth) {
 	if (m->capture != -1) return;
@@ -80,11 +91,18 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 }
 
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
+	nodes++;
+    	if (!(nodes & 2047)) {
+        	if (get_time_ms() >= deadline) interrupted = 1;
+    	}
+    	if (interrupted) return 0;
+
 	if (null_allowed) {
 		for (int i = rep_top - 3; i >= 0; i -= 2) {
 			if (rep_stack[i] == pos->hash) return 0;
 		}
 	}
+
 	if (depth == 0) return quiescence(pos, 5, alpha, beta);
 
 	int side = pos->side;
@@ -226,18 +244,22 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	return maxEval;
 }
 
-Move bot_move (int depth, Pos *pos) {
+Move bot_move (int max_depth, long long time, Pos *pos) {
+	deadline = get_time_ms() + time;
+    	interrupted = 0;
+    	nodes = 0;
+
 	Move best_move = {0};
+	Move candidate = {0};
 	shift_killers();
 	int prev_score = 0;
-	for (int i = 1; i <= depth; i++) {
+	for (int i = 1; i <= max_depth; i++) {
 		int score;
 		for (int p = 0; p < 12; p++)
 			for (int sq = 0; sq < 64; sq++)
 				history[p][sq] >>= 1;
 		if (i < 3) {
-			score = negamax(pos, i, 0, -1000000, 1000000, &best_move, 1);
-			prev_score = score;
+			score = negamax(pos, i, 0, -1000000, 1000000, &candidate, 1);
 		} else {
 			int delta = 50;
 			int alpha = prev_score - delta;
@@ -245,7 +267,7 @@ Move bot_move (int depth, Pos *pos) {
 			int alpha_delta = delta;
 			int beta_delta = delta;
 			while (1) {
-				score = negamax(pos, i, 0, alpha, beta, &best_move, 1);
+				score = negamax(pos, i, 0, alpha, beta, &candidate, 1);
 				if (score <= alpha) {
 					alpha_delta <<= 1;
 					alpha = score - alpha_delta;
@@ -256,8 +278,11 @@ Move bot_move (int depth, Pos *pos) {
 				}
 				else break;
 			}
-			prev_score = score;
 		}
+		if (interrupted) break;
+		best_move = candidate;
+		prev_score = score;
+		if (score > 99000 || score < -99000) break;
 	}
 	if (best_move.from == best_move.to) {
 		Move fallback_moves[256];

@@ -25,6 +25,7 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Delta pruning in quiescence search
 - Threefold repetition detection
 - Magic Bitboards for move generation
+- Time control
 
 ---
 
@@ -67,16 +68,13 @@ Enjoy!
 
 ## Performance
 
-At depth 16, search typically lasts less than 5 seconds. The complexity of the evaluation function significantly lengthens the search time.
-
-According to Stockfish 18, at depth 16 it plays around 90% accuracy and ELO score around 2200. It doesn't usually make huge mistakes. It doesn’t mean much (I suck at chess), but the bot beats me easily.
+According to a test in which the engine faced Stockfish (limited to an Elo rating of 2500), and in which 50 games were played, the engine’s Elo rating is 2430.
 
 ---
 
 ## Future work
 
 - Multi-threading
-- Time management
 - Improve evaluation: pawn structure, mobility, center control...
 
 ---

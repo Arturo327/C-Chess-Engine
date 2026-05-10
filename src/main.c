@@ -122,6 +122,40 @@ static int parse_position(const char *line, Pos *pos) {
 	return move_count;
 }
 
+static long long get_movetime (char *line, int side) {
+	long long wtime = -1, btime = -1, winc = 0, binc = 0;
+	long long movetime = -1, movestogo = 0;
+
+	char *p = line + 2;
+	while (*p) {
+		if (strncmp(p, "wtime", 5) == 0) { p += 5; wtime = atoll(p); }
+		else if (strncmp(p, "btime", 5) == 0) { p += 5; btime = atoll(p); }
+		else if (strncmp(p, "winc", 4) == 0) { p += 4; winc = atoll(p); }
+		else if (strncmp(p, "binc", 4) == 0) { p += 4; binc = atoll(p); }
+		else if (strncmp(p, "movetime", 8) == 0) { p += 8; movetime = atoll(p); }
+		else if (strncmp(p, "movestogo", 9) == 0)  { p += 9; movestogo = atoll(p); }
+		p++;
+	}
+
+	long long time_for_move;
+	if (movetime > 0) {
+		time_for_move = movetime - 50;
+	} else {
+		long long my_time = (side == 0) ? wtime : btime;
+		long long my_inc  = (side == 0) ? winc : binc;
+		if (my_time < 0) my_time = 10000;
+
+		if (movestogo > 0) {
+			time_for_move = my_time / (movestogo + 2) + my_inc * 8 / 10;
+		} else {
+			time_for_move = my_time / 25 + my_inc * 8 / 10;
+		}
+		if (time_for_move > my_time * 8 / 10) time_for_move = my_time * 8 / 10;
+		if (time_for_move < 10) time_for_move = 10;
+	}
+	return time_for_move;
+}
+
 int main (int argc, char *argv[]) {
 	generate_horse_table();
 	generate_king_table();
@@ -153,11 +187,12 @@ int main (int argc, char *argv[]) {
 			num_moves = parse_position(line, &pos);
 
 		} else if (strncmp(line, "go", 2) == 0) {
-			int depth = 20;
-			Move best = bot_move(depth, &pos);
+			int depth = 30;
+			long long movetime = get_movetime(line, pos.side);
+			Move best = bot_move(depth, movetime, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),
-				'a' + (best.to	 & 7), '1' + (best.to	>> 3));
+				'a' + (best.to & 7), '1' + (best.to >> 3));
 
 			char promo_char = 0;
 			if (pos.board[best.from] == 0 && best.pieza >= 1 && best.pieza <= 4) {

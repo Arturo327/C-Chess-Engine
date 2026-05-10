@@ -6,35 +6,53 @@
 #include "bitboards.h"
 
 int is_attacked(int sq, int by_white, Pos *pos) {
-	uint64_t friendly = by_white ?
-		pos->bitboard[0]|pos->bitboard[1]|pos->bitboard[2]|pos->bitboard[3]|pos->bitboard[4]|pos->bitboard[5] :
-		pos->bitboard[6]|pos->bitboard[7]|pos->bitboard[8]|pos->bitboard[9]|pos->bitboard[10]|pos->bitboard[11];
-	uint64_t enemy = by_white ?
-		pos->bitboard[6]|pos->bitboard[7]|pos->bitboard[8]|pos->bitboard[9]|pos->bitboard[10]|pos->bitboard[11] :
-		pos->bitboard[0]|pos->bitboard[1]|pos->bitboard[2]|pos->bitboard[3]|pos->bitboard[4]|pos->bitboard[5];
+	uint64_t occupied = 0;
+	for (int i = 0; i < 12; i++) occupied |= pos->bitboard[i];
 
-	uint64_t knightatt = by_white ? pos->bitboard[2] : pos->bitboard[8];
-	if (horse_moves[sq] & knightatt) return 1;
-	uint64_t kingatt = by_white ? pos->bitboard[5] : pos->bitboard[11];
-	if (king_moves[sq] & kingatt) return 1;
-	uint64_t rookatt = by_white ? pos->bitboard[1]|pos->bitboard[4] : pos->bitboard[7]|pos->bitboard[10];
-	if (get_rook_attacks(sq, enemy, friendly) & rookatt) return 1;
-	uint64_t bishatt = by_white ? pos->bitboard[3]|pos->bitboard[4] : pos->bitboard[9]|pos->bitboard[10];
-	if (get_alfil_attacks(sq, enemy, friendly) & bishatt) return 1;
-	if (by_white) {
-		uint64_t col_a = 0x0101010101010101ULL;
-		uint64_t col_h = 0x8080808080808080ULL;
-		uint64_t bit = 1ULL << sq;
-		if ((bit >> 7) & pos->bitboard[0] & ~col_a) return 1;
-		if ((bit >> 9) & pos->bitboard[0] & ~col_h) return 1;
-	} else {
-		uint64_t col_a = 0x0101010101010101ULL;
-		uint64_t col_h = 0x8080808080808080ULL;
-		uint64_t bit = 1ULL << sq;
-		if ((bit << 7) & pos->bitboard[6] & ~col_h) return 1;
-		if ((bit << 9) & pos->bitboard[6] & ~col_a) return 1;
+	int pawn = by_white ? 0 : 6;
+	uint64_t pawns = pos->bitboard[pawn];
+	if (pawns) {
+		uint64_t patt;
+        	if (by_white) {
+            		uint64_t col_a = 0x0101010101010101ULL;
+            		uint64_t col_h = 0x8080808080808080ULL;
+            		uint64_t target = 1ULL << sq;
+            		patt = ((target >> 7) & ~col_a) | ((target >> 9) & ~col_h);
+        	} else {
+            		uint64_t col_a = 0x0101010101010101ULL;
+            		uint64_t col_h = 0x8080808080808080ULL;
+            		uint64_t target = 1ULL << sq;
+            		patt = ((target << 7) & ~col_h) | ((target << 9) & ~col_a);
+        	}
+        	patt &= pawns;
+        	if (patt) return 1;
 	}
-	return 0;
+
+	int horse = by_white ? 2 : 8;
+    	uint64_t horses = pos->bitboard[horse] & horse_moves[sq];
+    	if (horses) return 1;
+
+	uint64_t diag_attackers = pos->bitboard[by_white ? 3 : 9] | pos->bitboard[by_white ? 4 : 10];	
+	if (diag_attackers) {
+		uint64_t occ = occupied & alfil_masks[sq];
+		int idx = (occ * alfil_magics[sq]) >> (64 - alfil_bits[sq]);
+		uint64_t diag_att = alfil_attack_table[sq][idx] & diag_attackers;
+		if (diag_att) return 1;
+	}
+
+	uint64_t line_attackers = pos->bitboard[by_white ? 1 : 7] | pos->bitboard[by_white ? 4 : 10];
+	if (line_attackers) {
+		uint64_t occ = occupied & rook_masks[sq];
+		int idx = (occ * rook_magics[sq]) >> (64 - rook_bits[sq]);
+		uint64_t line_att = rook_attack_table[sq][idx] & line_attackers;
+		if (line_att) return 1;
+	}
+
+	int king = by_white ? 5 : 11;
+    	uint64_t kings = pos->bitboard[king] & king_moves[sq];
+    	if (kings) return 1;
+
+    	return 0;
 }
 
 uint64_t get_w_pawn_moves (int from, uint64_t occupied) {

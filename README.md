@@ -68,7 +68,7 @@ Enjoy!
 
 ## Performance
 
-According to a test in which the engine faced Stockfish (limited to an Elo rating of 2500), and in which 50 games were played, the engine’s Elo rating is 2430.
+According to a test in which the engine faced Stockfish (limited to an ELO rating of 2500), and in which 50 games were played, the engine’s ELO rating is 2450.
 
 ---
 

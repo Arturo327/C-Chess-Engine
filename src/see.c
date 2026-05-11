@@ -69,8 +69,7 @@ static int least_valuable_attacker (int sq, int side, uint64_t occupied, Pos *po
 int see(Pos *pos, int to, int target_val, int from, int piece_val) {
 	uint64_t used = 0;
 	used |= (1ULL << from);
-	uint64_t occupied = 0;
-	for (int i = 0; i < 12; i++) occupied |= pos->bitboard[i];
+	uint64_t occupied = pos->occupied;
 	int gain[32];
 	int d = 0;
 	gain[d] = target_val;

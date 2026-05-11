@@ -6,9 +6,6 @@
 #include "bitboards.h"
 
 int is_attacked(int sq, int by_white, Pos *pos) {
-	uint64_t occupied = 0;
-	for (int i = 0; i < 12; i++) occupied |= pos->bitboard[i];
-
 	int pawn = by_white ? 0 : 6;
 	uint64_t pawns = pos->bitboard[pawn];
 	if (pawns) {
@@ -34,7 +31,7 @@ int is_attacked(int sq, int by_white, Pos *pos) {
 
 	uint64_t diag_attackers = pos->bitboard[by_white ? 3 : 9] | pos->bitboard[by_white ? 4 : 10];	
 	if (diag_attackers) {
-		uint64_t occ = occupied & alfil_masks[sq];
+		uint64_t occ = pos->occupied & alfil_masks[sq];
 		int idx = (occ * alfil_magics[sq]) >> (64 - alfil_bits[sq]);
 		uint64_t diag_att = alfil_attack_table[sq][idx] & diag_attackers;
 		if (diag_att) return 1;
@@ -42,7 +39,7 @@ int is_attacked(int sq, int by_white, Pos *pos) {
 
 	uint64_t line_attackers = pos->bitboard[by_white ? 1 : 7] | pos->bitboard[by_white ? 4 : 10];
 	if (line_attackers) {
-		uint64_t occ = occupied & rook_masks[sq];
+		uint64_t occ = pos->occupied & rook_masks[sq];
 		int idx = (occ * rook_magics[sq]) >> (64 - rook_bits[sq]);
 		uint64_t line_att = rook_attack_table[sq][idx] & line_attackers;
 		if (line_att) return 1;

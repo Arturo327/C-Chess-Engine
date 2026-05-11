@@ -34,10 +34,15 @@ void apply_move (Move *m, Pos *pos) {
 		pos->board[m->from] = -1;
 	}
 
+	// capturas
 	if (m->capture != -1) {
+		pos->occupied &= ~(1ULL << m->to);
 		pos->hash ^= zob_pieces[m->capture][m->to];
 		pos->bitboard[m->capture] &= ~(1ULL << m->to);
 	}
+
+	// actualizar ocupacion
+	pos->occupied ^= (1ULL << m->from) | (1ULL << m->to);
 
 	// en passant capture
 	pos->en_passant = -1;
@@ -46,12 +51,14 @@ void apply_move (Move *m, Pos *pos) {
 		pos->hash ^= zob_pieces[6][ep_sq];
 		pos->bitboard[6] &= ~(1ULL << ep_sq);
 		pos->board[ep_sq] = -1;
+		pos->occupied &= ~(1ULL << ep_sq);
 	}
 	if (m->capture == -1 && m->pieza == 6 && (m->to & 7) != (m->from & 7)) {
 		int ep_sq = m->to + 8;
 		pos->hash ^= zob_pieces[0][ep_sq];
 		pos->bitboard[0] &= ~(1ULL << ep_sq);
 		pos->board[ep_sq] = -1;
+		pos->occupied &= ~(1ULL << ep_sq);
 	}
 
 	// enroque
@@ -61,12 +68,14 @@ void apply_move (Move *m, Pos *pos) {
 			pos->hash ^= zob_pieces[1][7];
 			pos->hash ^= zob_pieces[1][5];
 			pos->bitboard[1] ^= (1ULL << 7) | (1ULL << 5);
+			pos->occupied ^= (1ULL << 7) | (1ULL << 5);
 			pos->board[5] = 1;
 			pos->board[7] = -1;
 		} else if (m->from - m->to == 2) {
 			pos->hash ^= zob_pieces[1][0];
 			pos->hash ^= zob_pieces[1][3];
 			pos->bitboard[1] ^= 1ULL | (1ULL << 3);
+			pos->occupied ^= 1ULL | (1ULL << 3);
 			pos->board[3] = 1;
 			pos->board[0] = -1;
 		}
@@ -78,12 +87,14 @@ void apply_move (Move *m, Pos *pos) {
 			pos->hash ^= zob_pieces[7][63];
 			pos->hash ^= zob_pieces[7][61];
 			pos->bitboard[7] ^= (1ULL << 63) | (1ULL << 61);
+			pos->occupied ^= (1ULL << 63) | (1ULL << 61);
 			pos->board[61] = 7;
 			pos->board[63] = -1;
 		} else if (m->from - m->to == 2) {
 			pos->hash ^= zob_pieces[7][56];
 			pos->hash ^= zob_pieces[7][59];
 			pos->bitboard[7] ^= (1ULL << 59) | (1ULL << 56);
+			pos->occupied ^= (1ULL << 59) | (1ULL << 56);
 			pos->board[59] = 7;
 			pos->board[56] = -1;
 		}

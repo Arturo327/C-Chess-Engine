@@ -15,6 +15,7 @@ typedef struct {
 	uint64_t bitboard[12];
 	int board[64];
 	uint64_t hash;
+	uint64_t occupied;
 	int8_t en_passant;
 	unsigned int castle : 4;
 	unsigned int side : 1;

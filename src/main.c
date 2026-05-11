@@ -100,6 +100,8 @@ static int parse_position(const char *line, Pos *pos) {
 			pos->en_passant = file + rank * 8;
 		}
 		pos->hash = compute_hash(pos);
+		pos->occupied = 0;
+		for (int i = 0; i < 12; i++) pos->occupied |= pos->bitboard[i];
 	}
 
 	rep_top = 0;
@@ -189,6 +191,11 @@ int main (int argc, char *argv[]) {
 		} else if (strncmp(line, "go", 2) == 0) {
 			int depth = 30;
 			long long movetime = get_movetime(line, pos.side);
+			char *a = strstr(line, " depth ");
+			if (a) {
+				a += 7;
+				depth = atoi(a);
+			}
 			Move best = bot_move(depth, movetime, &pos);
 			printf("bestmove %c%c%c%c",
 				'a' + (best.from & 7), '1' + (best.from >> 3),

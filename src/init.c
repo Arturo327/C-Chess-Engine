@@ -80,4 +80,5 @@ void reset(Pos *pos) {
 	}
 	pos->side = 0;
 	pos->hash = compute_hash(pos);
+	pos->occupied = 0xFFFF00000000FFFFULL;
 }

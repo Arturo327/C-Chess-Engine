@@ -8,7 +8,7 @@
 uint64_t rep_stack[REP_STACK_SIZE];
 int rep_top = 0;
 
-static int interrupted = 0;
+static volatile int interrupted = 0;
 static long long nodes = 0;
 static long long deadline = 0;
 
@@ -259,6 +259,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 	shift_killers();
 	int prev_score = 0;
 	for (int i = 1; i <= max_depth; i++) {
+		int saved_rep_top = rep_top;
 		int score;
 		for (int p = 0; p < 12; p++)
 			for (int sq = 0; sq < 64; sq++)
@@ -287,6 +288,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 		if (interrupted) break;
 		printf("info depth %d score cp %d\n", i, score);
     		fflush(stdout);
+		rep_top = saved_rep_top;
 		best_move = candidate;
 		prev_score = score;
 		if (score > 99000 || score < -99000) break;

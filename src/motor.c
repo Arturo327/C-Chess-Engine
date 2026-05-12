@@ -75,9 +75,9 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
 		if (!in_check && moves[i].capture != -1) {
-        		int see_val = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
-        		if (see_val < 0) continue;
-    		}
+			int see_val = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
+			if (see_val < 0) continue;
+		}
 
 		Pos child = *pos;
 		apply_move(&moves[i], &child);
@@ -97,10 +97,10 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
 	nodes++;
-    	if (!(nodes & 2047)) {
-        	if (get_time_ms() >= deadline) interrupted = 1;
-    	}
-    	if (interrupted) return 0;
+	if (!(nodes & 2047)) {
+		if (get_time_ms() >= deadline) interrupted = 1;
+	}
+	if (interrupted) return 0;
 
 	if (null_allowed) {
 		for (int i = rep_top - 3; i >= 0; i -= 2) {
@@ -172,6 +172,21 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			}
 			actual_move++;
 		}
+	}
+
+	if (!has_tt_move && depth >= 4) depth--;
+
+	if (depth <= 3 && !en_jaque && abs(alpha) < 99000) {
+		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		int margins[4] = {0, 150, 300, 500};
+		if (static_eval + margins[depth] <= alpha) {
+			return quiescence(pos, 5, alpha, beta);
+		}
+	}
+
+	if (depth == 1 && !en_jaque) {
+		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		if (static_eval + 300 < alpha) return quiescence(pos, 5, alpha, beta);
 	}
 
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
@@ -251,8 +266,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 
 Move bot_move (int max_depth, long long time, Pos *pos) {
 	deadline = get_time_ms() + time;
-    	interrupted = 0;
-    	nodes = 0;
+	interrupted = 0;
+	nodes = 0;
 
 	Move best_move = {0};
 	Move candidate = {0};
@@ -287,7 +302,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 		}
 		if (interrupted) break;
 		printf("info depth %d score cp %d\n", i, score);
-    		fflush(stdout);
+		fflush(stdout);
 		rep_top = saved_rep_top;
 		best_move = candidate;
 		prev_score = score;

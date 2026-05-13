@@ -27,7 +27,6 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Magic Bitboards for move generation
 - Time control
 - Futility pruning
-- Razoring
 - Internal Iterative Reduction (IIR)
 
 ---
@@ -71,7 +70,7 @@ Enjoy!
 
 ## Performance
 
-According to a test in which the engine faced Stockfish (limited to an ELO rating of 2500), and in which 50 games were played, the engine’s ELO rating is 2500.
+According to a test in which the engine faced Stockfish (limited to an ELO rating of 2500), and in which 50 games were played, the engine’s ELO rating is around 2500.
 
 ---
 

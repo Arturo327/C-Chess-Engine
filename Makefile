@@ -5,7 +5,7 @@ OBJ = build/main.o build/motor.o build/eval.o build/movegen.o build/get_moves.o 
 all: build/chess
 
 build/chess: $(OBJ)
-	$(CC) $(OBJ) -o build/chess
+	$(CC) $(OBJ) -lm -o build/chess
 
 build/main.o: src/main.c
 	$(CC) $(CFLAGS) -c src/main.c -o build/main.o

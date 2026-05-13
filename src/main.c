@@ -130,12 +130,12 @@ static long long get_movetime (char *line, int side) {
 
 	char *p = line + 2;
 	while (*p) {
-		if (strncmp(p, "wtime", 5) == 0) { p += 5; wtime = atoll(p); }
-		else if (strncmp(p, "btime", 5) == 0) { p += 5; btime = atoll(p); }
-		else if (strncmp(p, "winc", 4) == 0) { p += 4; winc = atoll(p); }
-		else if (strncmp(p, "binc", 4) == 0) { p += 4; binc = atoll(p); }
-		else if (strncmp(p, "movetime", 8) == 0) { p += 8; movetime = atoll(p); }
-		else if (strncmp(p, "movestogo", 9) == 0)  { p += 9; movestogo = atoll(p); }
+		if (strncmp(p, " wtime ", 7) == 0) { p += 7; wtime = atoll(p); }
+		else if (strncmp(p, " btime ", 7) == 0) { p += 7; btime = atoll(p); }
+		else if (strncmp(p, " winc ", 6) == 0) { p += 6; winc = atoll(p); }
+		else if (strncmp(p, " binc ", 6) == 0) { p += 6; binc = atoll(p); }
+		else if (strncmp(p, " movetime ", 10) == 0) { p += 10; movetime = atoll(p); }
+		else if (strncmp(p, " movestogo ", 11) == 0)  { p += 11; movestogo = atoll(p); }
 		p++;
 	}
 
@@ -144,7 +144,7 @@ static long long get_movetime (char *line, int side) {
 		time_for_move = movetime - 50;
 	} else {
 		long long my_time = (side == 0) ? wtime : btime;
-		long long my_inc  = (side == 0) ? winc : binc;
+		long long my_inc = (side == 0) ? winc : binc;
 		if (my_time < 0) my_time = 10000;
 
 		if (movestogo > 0) {
@@ -164,6 +164,7 @@ int main (int argc, char *argv[]) {
 	init_magics();
 	init_zobrist();
 	tt_clear();   
+	reset_lmr();
 	Pos pos;
 	reset(&pos);
 	char line[4096];

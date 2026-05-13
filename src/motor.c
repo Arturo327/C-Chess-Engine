@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 uint64_t rep_stack[REP_STACK_SIZE];
 int rep_top = 0;
@@ -12,24 +13,32 @@ static volatile int interrupted = 0;
 static long long nodes = 0;
 static long long deadline = 0;
 
-static long long get_time_ms(void) {
+static int lmr_table[64][256] = {0};
+
+void reset_lmr (void) {
+	for (int i = 1; i < 64; i++)
+		for (int j = 1; j < 256; j++)
+			lmr_table[i][j] = (int)(0.75 + log(i) * log(j) / 2.25);
+}
+
+static long long get_time_ms (void) {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
 }
 
-static void update_history(Move *m, int depth) {
+static void update_history (Move *m, int depth) {
 	if (m->capture != -1) return;
 	history[m->pieza][m->to] += depth * depth;
 
 	if (history[m->pieza][m->to] > 1000000) {
 		for (int p = 0; p < 12; p++)
 			for (int sq = 0; sq < 64; sq++)
-				history[p][sq] /= 2;
+				history[p][sq] >>= 1;
 	}
 }
 
-static void store_killer(Move *m, int ply) {
+static void store_killer (Move *m, int ply) {
 	if (m->capture != -1) return;
 
 	if (killers[ply][0].from == m->from && killers[ply][0].to == m->to) return;
@@ -38,7 +47,7 @@ static void store_killer(Move *m, int ply) {
 	killers[ply][0] = *m;
 }
 
-void shift_killers(void) {
+void shift_killers (void) {
 	for (int i = 0; i < MAX_DEPTH - 2; i++) {
 		killers[i][0] = killers[i + 2][0];
 		killers[i][1] = killers[i + 2][1];
@@ -46,19 +55,40 @@ void shift_killers(void) {
 	memset(&killers[MAX_DEPTH - 2], 0, 2 * sizeof(killers[0]));
 }
 
-int quiescence (Pos *pos, int depth, int alpha, int beta) {
+int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 	int side = pos->side;
 	int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
 	int in_check = is_attacked(king_sq, side, pos);
 
+	int original_alpha = alpha;
+	int tt_score = 0;
+	TTEntry *raw = tt_probe(pos->hash);
+	TTEntry entry;
+	if (raw) {
+		entry = *raw;
+		tt_score = entry.score;
+		if (tt_score > 99000) tt_score -= ply;
+		else if (tt_score < -99000) tt_score += ply;
+		if (entry.flag == TT_EXACT) return tt_score;
+		if (entry.flag == TT_LOWER && tt_score >= beta) return tt_score;
+		if (entry.flag == TT_UPPER && tt_score <= alpha) return tt_score;
+	}
+
+	int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
 	if (!in_check) {
-		int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		if (raw) {
+			if (entry.flag == TT_LOWER && tt_score > stand_pat)
+				stand_pat = tt_score;
+			if (entry.flag == TT_UPPER && tt_score < stand_pat)
+				stand_pat = tt_score;
+		}
+
 		if (depth == 0) return stand_pat;
 		if (stand_pat + 1000 < alpha) return alpha;
 		if (stand_pat >= beta) return beta;
 		if (stand_pat > alpha) alpha = stand_pat;
 	} else {
-		if (depth < -3) return (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		if (depth < -3) return stand_pat;
 	}
 
 	Move moves[256];
@@ -72,11 +102,15 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 	}
 	sort_moves(moves, count, 0, pos);
 
+	int best_score = in_check ? -1000000 : alpha;
+	Move best_move = {0};
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
 		if (!in_check && moves[i].capture != -1) {
 			int see_val = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
 			if (see_val < 0) continue;
+			int delta_margin = 200;
+			if (stand_pat + values[moves[i].capture % 6] + delta_margin < alpha) continue;
 		}
 
 		Pos child = *pos;
@@ -86,13 +120,31 @@ int quiescence (Pos *pos, int depth, int alpha, int beta) {
 		if (is_attacked(ksq, side, &child)) continue;
 		legal++;
 
-		int eval = -quiescence(&child, depth - 1, -beta, -alpha);
+		int eval = -quiescence(&child, depth - 1, -beta, -alpha, ply + 1);
+		if (eval > best_score) {
+			best_score = eval;
+			best_move = moves[i];
+		}
 		if (eval > alpha) alpha = eval;
-		if (alpha >= beta) return beta;
+		if (alpha >= beta) {
+			tt_store(pos->hash, beta, ply, TT_LOWER, &best_move);
+			return beta;
+		}
 	}
 
-	if (in_check && legal == 0) return -100000;
-	return alpha;
+	if (in_check && legal == 0) {
+		tt_store(pos->hash, -100000, ply, TT_EXACT, NULL);
+		return -100000 + ply;
+	}
+	
+	int flag;
+	if (best_score <= original_alpha) flag = TT_UPPER;
+	else if (best_score == stand_pat && !in_check) flag = TT_LOWER;
+	else if (best_score >= beta) flag = TT_LOWER;
+	else flag = TT_EXACT;
+	tt_store(pos->hash, best_score, ply, flag, &best_move);
+
+	return best_score;
 }
 
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
@@ -108,7 +160,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	if (depth == 0) return quiescence(pos, 5, alpha, beta);
+	if (depth == 0) return quiescence(pos, 5, alpha, beta, ply);
 
 	int side = pos->side;
 	int original_alpha = alpha;
@@ -174,19 +226,15 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
+	int old_depth = depth;
 	if (!has_tt_move && depth >= 4) depth--;
 
-	if (depth <= 3 && !en_jaque && abs(alpha) < 99000) {
-		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
-		int margins[4] = {0, 150, 300, 500};
-		if (static_eval + margins[depth] <= alpha) {
-			return quiescence(pos, 5, alpha, beta);
-		}
-	}
-
-	if (depth == 1 && !en_jaque) {
-		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
-		if (static_eval + 300 < alpha) return quiescence(pos, 5, alpha, beta);
+	int static_eval = -1000000;
+	int can_futility = 0;
+	if (!en_jaque && old_depth <= 3 && abs(alpha) < 99000 && abs(beta) < 99000) {
+		static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+		static const int margins[4] = {0, 150, 350, 550};
+		can_futility = (static_eval + margins[depth] <= alpha);
 	}
 
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
@@ -197,6 +245,18 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	actual_move = moves;
 
 	for (int i = 0; i < total_moves; i++) {
+
+		int is_promo;
+		if (pos->side)
+			is_promo = (actual_move->pieza == 0 && actual_move->to >= 56);
+		else
+			is_promo = (actual_move->pieza == 6 && actual_move->to <= 7);
+
+		if (can_futility && maxEval != -1000000 && actual_move->capture == -1 && !is_promo) {
+			actual_move++;
+			continue;
+		}
+
 		child = *pos;
 		apply_move(actual_move, &child);
 
@@ -206,10 +266,10 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			continue;
 		}
 
-		rep_stack[rep_top++] = child.hash;
-
 		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
 		int da_jaque = is_attacked(opp_king, !side, &child);
+
+		rep_stack[rep_top++] = child.hash;
 
 		int eval;
 		if (i == 0) {
@@ -217,8 +277,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		} else {
 			int reduction = 0;
 			if (i >= 3 && !da_jaque && !en_jaque && depth >= 3 && actual_move->capture == -1) {
-				reduction = 1;
-				if (i >= 6) reduction = depth / 3;
+				reduction = lmr_table[depth][i];
+				if (reduction < 1) reduction = 1;
+				if (reduction > depth - 2) reduction = depth - 2;
 			}
 			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL, 1);
 			if (eval > alpha && eval < beta) {
@@ -247,8 +308,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	}
 
 	if (maxEval == -1000000) {
-		int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
-		int score = is_attacked(king_sq, side, pos) ? -(100000 - ply) : 0;
+		int score = en_jaque ? -(100000 - ply) : 0;
 		int a = score;
 		if (score < -99000) a = score - ply;
 		tt_store(pos->hash, a, depth, TT_EXACT, NULL);
@@ -289,6 +349,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			int beta_delta = delta;
 			while (1) {
 				score = negamax(pos, i, 0, alpha, beta, &candidate, 1);
+				if (interrupted) break;
 				if (score <= alpha) {
 					alpha_delta <<= 1;
 					alpha = score - alpha_delta;
@@ -300,10 +361,10 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 				else break;
 			}
 		}
-		if (interrupted) break;
-		printf("info depth %d score cp %d\n", i, score);
-		fflush(stdout);
 		rep_top = saved_rep_top;
+		if (interrupted) break;
+		printf("info depth %d score cp %d nodes %lld\n", i, score, nodes);
+		fflush(stdout);
 		best_move = candidate;
 		prev_score = score;
 		if (score > 99000 || score < -99000) break;

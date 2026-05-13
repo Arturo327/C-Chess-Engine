@@ -18,7 +18,8 @@
 extern uint64_t rep_stack[REP_STACK_SIZE];
 extern int rep_top;
 
-int quiescence (Pos *pos, int depth, int alpha, int beta);
+void reset_lmr (void);
+int quiescence (Pos *pos, int depth, int alpha, int beta, int ply);
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed);
 Move bot_move(int depth, long long movetime, Pos *pos);
 

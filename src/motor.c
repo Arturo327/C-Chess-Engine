@@ -127,22 +127,21 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		}
 		if (eval > alpha) alpha = eval;
 		if (alpha >= beta) {
-			tt_store(pos->hash, beta, ply, TT_LOWER, &best_move);
+			tt_store(pos->hash, beta, 0, TT_LOWER, &best_move);
 			return beta;
 		}
 	}
 
 	if (in_check && legal == 0) {
-		tt_store(pos->hash, -100000, ply, TT_EXACT, NULL);
+		tt_store(pos->hash, -100000, 0, TT_EXACT, NULL);
 		return -100000 + ply;
 	}
 	
 	int flag;
 	if (best_score <= original_alpha) flag = TT_UPPER;
-	else if (best_score == stand_pat && !in_check) flag = TT_LOWER;
 	else if (best_score >= beta) flag = TT_LOWER;
 	else flag = TT_EXACT;
-	tt_store(pos->hash, best_score, ply, flag, &best_move);
+	tt_store(pos->hash, best_score, 0, flag, &best_move);
 
 	return best_score;
 }
@@ -226,15 +225,13 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	int old_depth = depth;
 	if (!has_tt_move && depth >= 4) depth--;
 
-	int static_eval = -1000000;
 	int can_futility = 0;
-	if (!en_jaque && old_depth <= 3 && abs(alpha) < 99000 && abs(beta) < 99000) {
-		static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
-		static const int margins[4] = {0, 150, 350, 550};
-		can_futility = (static_eval + margins[depth] <= alpha);
+	if (!en_jaque && depth <= 3 && abs(alpha) < 99000 && abs(beta) < 99000) {
+    		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
+    		static const int margins[4] = {0, 150, 350, 550};
+    		can_futility = (static_eval + margins[depth] <= alpha);
 	}
 
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
@@ -245,17 +242,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	actual_move = moves;
 
 	for (int i = 0; i < total_moves; i++) {
-
-		int is_promo;
-		if (pos->side)
-			is_promo = (actual_move->pieza == 0 && actual_move->to >= 56);
-		else
-			is_promo = (actual_move->pieza == 6 && actual_move->to <= 7);
-
-		if (can_futility && maxEval != -1000000 && actual_move->capture == -1 && !is_promo) {
-			actual_move++;
-			continue;
-		}
 
 		child = *pos;
 		apply_move(actual_move, &child);
@@ -268,6 +254,11 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 
 		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
 		int da_jaque = is_attacked(opp_king, !side, &child);
+
+		if (can_futility && !da_jaque && maxEval != -1000000 && actual_move->capture == -1) {
+			actual_move++;
+			continue;
+		}
 
 		rep_stack[rep_top++] = child.hash;
 

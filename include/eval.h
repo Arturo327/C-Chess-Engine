@@ -5,6 +5,7 @@
 
 #include "types.h"
 
-int eval_pos(Pos *pos);
+void reset_eval_masks (void);
+int eval_pos (Pos *pos);
 
 #endif

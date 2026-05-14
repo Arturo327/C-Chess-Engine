@@ -165,6 +165,8 @@ int main (int argc, char *argv[]) {
 	init_zobrist();
 	tt_clear();   
 	reset_lmr();
+	reset_eval_masks();
+
 	Pos pos;
 	reset(&pos);
 	char line[4096];

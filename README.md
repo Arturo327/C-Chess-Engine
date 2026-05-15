@@ -26,8 +26,6 @@ A lightweight, from-scratch chess engine implemented in C, designed for educatio
 - Threefold repetition detection
 - Magic Bitboards for move generation
 - Time control
-- Futility pruning
-- Internal Iterative Reduction (IIR)
 
 ---
 

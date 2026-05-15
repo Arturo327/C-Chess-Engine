@@ -79,8 +79,6 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		if (raw) {
 			if (entry.flag == TT_LOWER && tt_score > stand_pat)
 				stand_pat = tt_score;
-			if (entry.flag == TT_UPPER && tt_score < stand_pat)
-				stand_pat = tt_score;
 		}
 
 		if (depth == 0) return stand_pat;
@@ -100,7 +98,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		if (side) count = get_b_captures(moves, pos);
 		else count = get_w_captures(moves, pos);
 	}
-	sort_moves(moves, count, 0, pos);
+	sort_moves(moves, count, ply, pos);
 
 	int best_score = in_check ? -1000000 : alpha;
 	Move best_move = {0};
@@ -225,15 +223,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	if (!has_tt_move && depth >= 4) depth--;
-
-	int can_futility = 0;
-	if (!en_jaque && depth <= 3 && abs(alpha) < 99000 && abs(beta) < 99000) {
-    		int static_eval = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
-    		static const int margins[4] = {0, 150, 350, 550};
-    		can_futility = (static_eval + margins[depth] <= alpha);
-	}
-
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
 
 	int maxEval = -1000000;
@@ -254,11 +243,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 
 		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
 		int da_jaque = is_attacked(opp_king, !side, &child);
-
-		if (can_futility && !da_jaque && maxEval != -1000000 && actual_move->capture == -1) {
-			actual_move++;
-			continue;
-		}
 
 		rep_stack[rep_top++] = child.hash;
 

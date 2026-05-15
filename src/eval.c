@@ -144,13 +144,15 @@ void reset_eval_masks (void) {
 	}
 	for (int sq = 0; sq < 64; sq++) {
     		int col = sq % 8;
-    		uint64_t ahead = ~0ULL << (sq + 8);
+		int next_rank = (sq & ~7) + 8;
+		uint64_t ahead = next_rank < 64 ? (~0ULL << next_rank) : 0ULL;
     		uint64_t column = col_mask[col];
     		if (col > 0) column |= col_mask[col - 1];
     		if (col < 7) column |= col_mask[col + 1];
     		passed_mask_w[sq] = ahead & column;
 
-		ahead = (sq > 0) ? (~0ULL >> (64 - sq)) : 0ULL;
+		int rank_start = sq & ~7;
+		ahead = rank_start > 0 ? (~0ULL >> (64 - rank_start)) : 0ULL;
 		column = col_mask[col];
 		if (col > 0) column |= col_mask[col - 1];
 		if (col < 7) column |= col_mask[col + 1];

@@ -133,7 +133,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 	return alpha;
 }
 
-int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {
+int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed, int en_jaque) {
 	nodes++;
 	if (!(nodes & 2047)) {
 		if (get_time_ms() >= deadline) interrupted = 1;
@@ -172,7 +172,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		pos->bitboard[side ? 7 : 1] | pos->bitboard[side ? 8 : 2] |
 		pos->bitboard[side ? 9 : 3] | pos->bitboard[side ? 10 : 4]);
 
-	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[side ? 11 : 5]), side, pos);
+	int opp_king = __builtin_ctzll(pos->bitboard[side ? 5 : 11]);
 
 	if (depth >= 3 && non_pawn_material && null_allowed && !en_jaque) {
 		Pos null_pos = *pos;
@@ -185,7 +185,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		int reduction = 3 + depth / 6;
 		int c = depth - 1 - reduction;
 		if (c < 0) c = 0;
-		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL, 0);
+		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL, 0, 0);
 		
 		if (null_eval >= beta) return beta;
 	}
@@ -230,14 +230,13 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			continue;
 		}
 
-		int opp_king = __builtin_ctzll(child.bitboard[side ? 5 : 11]);
 		int da_jaque = is_attacked(opp_king, !side, &child);
 
 		rep_stack[rep_top++] = child.hash;
 
 		int eval;
 		if (i == 0) {
-			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
+			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1, da_jaque);
 		} else {
 			int reduction = 0;
 			if (i >= 3 && !da_jaque && !en_jaque && depth >= 3 && actual_move->capture == -1) {
@@ -245,9 +244,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 				if (reduction < 1) reduction = 1;
 				if (reduction > depth - 2) reduction = depth - 2;
 			}
-			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL, 1);
+			eval = -negamax(&child, depth - 1 - reduction, ply + 1, -alpha - 1, -alpha, NULL, 1, da_jaque);
 			if (eval > alpha && eval < beta) {
-				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1);
+				eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1, da_jaque);
 			}
 		}
 
@@ -297,6 +296,9 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 	Move candidate = {0};
 	shift_killers();
 	int prev_score = 0;
+
+	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
+
 	for (int i = 1; i <= max_depth; i++) {
 		int saved_rep_top = rep_top;
 		int score;
@@ -304,7 +306,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			for (int sq = 0; sq < 64; sq++)
 				history[p][sq] >>= 1;
 		if (i < 3) {
-			score = negamax(pos, i, 0, -1000000, 1000000, &candidate, 1);
+			score = negamax(pos, i, 0, -1000000, 1000000, &candidate, 1, en_jaque);
 		} else {
 			int delta = 50;
 			int alpha = prev_score - delta;
@@ -312,7 +314,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			int alpha_delta = delta;
 			int beta_delta = delta;
 			while (1) {
-				score = negamax(pos, i, 0, alpha, beta, &candidate, 1);
+				score = negamax(pos, i, 0, alpha, beta, &candidate, 1, en_jaque);
 				if (interrupted) break;
 				if (score <= alpha) {
 					alpha_delta <<= 1;

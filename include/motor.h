@@ -20,7 +20,7 @@ extern int rep_top;
 
 void reset_lmr (void);
 int quiescence (Pos *pos, int depth, int alpha, int beta, int ply);
-int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed);
+int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed, int en_jaque);
 Move bot_move(int depth, long long movetime, Pos *pos);
 
 #endif

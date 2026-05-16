@@ -98,7 +98,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		if (side) count = get_b_captures(moves, pos);
 		else count = get_w_captures(moves, pos);
 	}
-	sort_moves(moves, count, ply, pos);
+	sort_moves(moves, count, 0, pos);
 
 	int best_score = in_check ? -1000000 : alpha;
 	Move best_move = {0};

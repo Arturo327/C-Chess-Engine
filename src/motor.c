@@ -98,15 +98,20 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		if (side) count = get_b_captures(moves, pos);
 		else count = get_w_captures(moves, pos);
 	}
-	sort_moves(moves, count, 0, pos);
+	
+	int see_scores[count];
+	for (int i = 0; i < count; i++) {
+		if (moves[i].capture != -1) {
+			see_scores[i] = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
+		}
+	} 
 
-	int best_score = in_check ? -1000000 : alpha;
-	Move best_move = {0};
+	sort_moves_quiescence (moves, count, pos, see_scores);
+
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
 		if (!in_check && moves[i].capture != -1) {
-			int see_val = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
-			if (see_val < 0) continue;
+			if (see_scores[i] < 0) continue;
 			int delta_margin = 200;
 			if (stand_pat + values[moves[i].capture % 6] + delta_margin < alpha) continue;
 		}
@@ -119,29 +124,13 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		legal++;
 
 		int eval = -quiescence(&child, depth - 1, -beta, -alpha, ply + 1);
-		if (eval > best_score) {
-			best_score = eval;
-			best_move = moves[i];
-		}
 		if (eval > alpha) alpha = eval;
-		if (alpha >= beta) {
-			tt_store(pos->hash, beta, 0, TT_LOWER, &best_move);
-			return beta;
-		}
+		if (alpha >= beta) return beta;
 	}
 
-	if (in_check && legal == 0) {
-		tt_store(pos->hash, -100000, 0, TT_EXACT, NULL);
-		return -100000 + ply;
-	}
-	
-	int flag;
-	if (best_score <= original_alpha) flag = TT_UPPER;
-	else if (best_score >= beta) flag = TT_LOWER;
-	else flag = TT_EXACT;
-	tt_store(pos->hash, best_score, 0, flag, &best_move);
+	if (in_check && legal == 0) return -100000 + ply;
 
-	return best_score;
+	return alpha;
 }
 
 int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, int null_allowed) {

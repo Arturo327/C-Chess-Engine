@@ -38,7 +38,39 @@ static int score_move(Move *m, int ply, Pos *pos) {
 	return history[m->pieza][m->to];
 }
 
-void sort_moves(Move *moves, int count, int ply, Pos *pos) {
+void sort_moves_quiescence (Move *moves, int count, Pos *pos, int *see_scores) {
+	int scores[count];
+	for (int i = 0; i < count; i++)
+		if (moves[i].capture != -1) scores[i] = see_scores[i] + 2000000;
+		else scores[i] = history[moves[i].pieza][moves[i].to];
+
+	for (int i = 0; i < count - 1; i++) {
+		int best = i;
+		int best_score = scores[i];
+		for (int j = i + 1; j < count; j++) {
+			int act_score = scores[j];
+			if (act_score > best_score) {
+				best = j;
+				best_score = act_score;
+			}
+		}
+		if (best != i) {
+			Move tmp = moves[i];
+			moves[i] = moves[best];
+			moves[best] = tmp;
+
+			int stmp = scores[i];
+			scores[i] = scores[best];
+			scores[best] = stmp;
+
+			int stmp_see = see_scores[i];
+			see_scores[i] = see_scores[best];
+			see_scores[best] = stmp_see;
+		}
+	}
+}
+
+void sort_moves (Move *moves, int count, int ply, Pos *pos) {
 	int scores[count];
 	for (int i = 0; i < count; i++) 
 		scores[i] = score_move(&moves[i], ply, pos);

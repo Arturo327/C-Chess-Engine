@@ -60,7 +60,6 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 	int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
 	int in_check = is_attacked(king_sq, side, pos);
 
-	int original_alpha = alpha;
 	int tt_score = 0;
 	TTEntry *raw = tt_probe(pos->hash);
 	TTEntry entry;
@@ -110,6 +109,9 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
+
+		if (moves[i].capture == 5 || moves[i].capture == 11) continue;
+
 		if (!in_check && moves[i].capture != -1) {
 			if (see_scores[i] < 0) continue;
 			int delta_margin = 200;
@@ -221,6 +223,11 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 
 	for (int i = 0; i < total_moves; i++) {
 
+		if (actual_move->capture == 5 || actual_move->capture == 11) {
+			actual_move++;
+			continue;
+		}
+
 		child = *pos;
 		apply_move(actual_move, &child);
 
@@ -328,7 +335,10 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			}
 		}
 		rep_top = saved_rep_top;
-		if (interrupted) break;
+		if (interrupted) {
+			printf("info string busqueda interrumpida con %lld nodos\n", nodes);
+			break;
+		}
 		printf("info depth %d score cp %d nodes %lld\n", i, score, nodes);
 		fflush(stdout);
 		best_move = candidate;
@@ -351,10 +361,70 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 	return best_move;
 }
 
+void bench_pos (int depth, Pos *pos, long long *total_time, long long *total_nodes) {
+	tt_clear();
+	memset(history, 0, sizeof(history));
+	memset(killers, 0, sizeof(killers));
+	rep_top = 0;
+	rep_stack[rep_top++] = pos->hash;
 
+	interrupted = 0;
+	nodes = 0;
+	deadline = get_time_ms() + 60000;
 
+	long long t0 = get_time_ms();
+	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
 
+	Move best = {0};
+	int prev_score = 0;
+	for (int d = 1; d <= depth; d++) {
+		for (int pp = 0; pp < 12; pp++)
+			for (int s = 0; s < 64; s++)
+				history[pp][s] >>= 1;
 
+		int score;
+		if (d < 3) {
+			score = negamax(pos, d, 0, -1000000, 1000000, &best, 1, en_jaque);
+		} else {
+			int delta = 50;
+			int alpha = prev_score - delta, beta = prev_score + delta;
+			int ad = delta, bd = delta;
+			while (1) {
+				score = negamax(pos, d, 0, alpha, beta, &best, 1, en_jaque);
+				if (interrupted) break;
+				if (score <= alpha) { ad <<= 1; alpha = score - ad; }
+				else if (score >= beta) { bd <<= 1; beta = score + bd; }
+				else break;
+			}
+		}	
+		if (interrupted) break;
+		prev_score = score;
+	}
 
+	long long t1 = get_time_ms();
+	long long ms = t1 - t0;
+	if (ms == 0) ms = 1;
 
+	long long nps = nodes * 1000LL / ms;
+	printf("depth %2d | nodes %10lld | time %5lldms | nps %8lld | best %c%c%c%c",
+		depth, nodes, ms, nps,
+		'a' + (best.from & 7), '1' + (best.from >> 3),
+		'a' + (best.to	 & 7), '1' + (best.to	>> 3));
 
+	char promo_char = 0;
+	if (pos->board[best.from] == 0 && best.pieza >= 1 && best.pieza <= 4) {
+		char pc[] = {0, 'r', 'n', 'b', 'q'};
+		promo_char = pc[best.pieza];
+	}
+	if (pos->board[best.from] == 6 && best.pieza >= 7 && best.pieza <= 10) {
+		char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
+		promo_char = pc[best.pieza];
+	}
+	if (promo_char) printf("%c\n", promo_char);
+	else printf("\n");
+
+	fflush(stdout);
+
+	*total_nodes += nodes;
+	*total_time += ms;
+}

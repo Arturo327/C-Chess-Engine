@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define FEN_FILE "bench.fen"
+
 static int char_to_piece(char c) {
 	switch (c) {
 		case 'P': return 0;
@@ -50,58 +52,61 @@ static void get_move (char *s, Pos *pos) {
 	apply_move(&m, pos);
 }
 
+static void get_fen (const char *line, Pos *pos) {
+	int sq = 56;
+	const char *p = line;
+	memset(pos->board, 0xFF, 64);
+	memset(pos->bitboard, 0, 12 * sizeof(uint64_t));
+	while (*p && *p != ' ') {
+		if (*p == '/') {
+			sq -= 16;
+		} 
+		else if (*p >= '1' && *p <= '8') {
+			sq += *p - '0';
+		} 
+		else {
+			int pieza = char_to_piece(*p);
+			pos->board[sq] = pieza;
+			pos->bitboard[pieza] |= (1ULL << sq);
+			sq++;
+		}
+		p++;
+	}
+	p++;
+	pos->side = (*p == 'w') ? 0 : 1;
+	p += 2;
+	pos->castle = 0;
+	while (*p && *p != ' ') {
+		switch (*p) {
+			case 'K': pos->castle |= 1; break;
+			case 'Q': pos->castle |= 2; break;
+			case 'k': pos->castle |= 4; break;
+			case 'q': pos->castle |= 8; break;
+		}
+		p++;
+	}
+	p++;
+	if (*p == '-') {
+		pos->en_passant = -1;
+	} else {
+		int file = p[0] - 'a';
+		int rank = p[1] - '1';
+		pos->en_passant = file + rank * 8;
+	}
+	pos->hash = compute_hash(pos);
+	pos->occupied = 0;
+	for (int i = 0; i < 12; i++) pos->occupied |= pos->bitboard[i];
+}
+
 static int parse_position(const char *line, Pos *pos) {
 	int move_count = 0;
 	char *start = strstr(line, " startpos");
 	if (start) {
 		reset(pos);
 	} else {
-		int sq = 56;
 		char *position = strstr(line, " fen ");
-		if (!position) return move_count;
-		position += 5;
-		char *p = position;
-		memset(pos->board, 0xFF, 64);
-		memset(pos->bitboard, 0, 12 * sizeof(uint64_t));
-		while (*p && *p != ' ') {
-			if (*p == '/') {
-				sq -= 16;
-			} 
-			else if (*p >= '1' && *p <= '8') {
-				sq += *p - '0';
-			} 
-			else {
-				int pieza = char_to_piece(*p);
-				pos->board[sq] = pieza;
-				pos->bitboard[pieza] |= (1ULL << sq);
-				sq++;
-			}
-			p++;
-		}
-		p++;
-		pos->side = (*p == 'w') ? 0 : 1;
-		p += 2;
-		pos->castle = 0;
-		while (*p && *p != ' ') {
-			switch (*p) {
-				case 'K': pos->castle |= 1; break;
-				case 'Q': pos->castle |= 2; break;
-				case 'k': pos->castle |= 4; break;
-				case 'q': pos->castle |= 8; break;
-			}
-			p++;
-		}
-		p++;
-		if (*p == '-') {
-			pos->en_passant = -1;
-		} else {
-			int file = p[0] - 'a';
-			int rank = p[1] - '1';
-			pos->en_passant = file + rank * 8;
-		}
-		pos->hash = compute_hash(pos);
-		pos->occupied = 0;
-		for (int i = 0; i < 12; i++) pos->occupied |= pos->bitboard[i];
+		if (!position) return 0;
+		get_fen (position + 5, pos);
 	}
 
 	rep_top = 0;
@@ -122,6 +127,55 @@ static int parse_position(const char *line, Pos *pos) {
 		}
 	} 
 	return move_count;
+}
+
+static void bench (const char *filename) {
+	FILE *f = fopen(filename, "r");
+    	if (!f) {
+        	fprintf(stderr, "bench: no se puede abrir %s\n", filename);
+        	return;
+    	}
+
+    	long long total_nodes = 0;
+    	long long total_time = 0;
+    	int positions = 0;
+    	int depth = 16;
+
+    	generate_horse_table();
+    	generate_king_table();
+
+	char line[1024];
+	while (fgets(line, sizeof(line), f)) {
+        	if (line[0] == '\n' || line[0] == '#') continue;
+        	line[strcspn(line, "\n")] = 0;
+		Pos pos;
+		get_fen (line, &pos);
+
+		tt_clear();
+        	memset(history, 0, sizeof(history));
+        	memset(killers, 0, sizeof(killers));
+        	rep_top = 0;
+        	rep_stack[rep_top++] = pos.hash;
+
+		bench_pos (depth, &pos, &total_time, &total_nodes);
+        	positions++;
+    	}
+
+    	fclose(f);
+
+    	if (positions == 0) {
+        	printf("bench: no se encontraron posiciones\n");
+        	return;
+    	}
+
+	if (total_time == 0) total_time = 1;
+    	long long avg_nps = total_nodes * 1000LL / total_time;
+    	printf("\n=== BENCH RESULTADO ===\n");
+    	printf("Posiciones : %d\n", positions);
+    	printf("Nodos total: %lld\n", total_nodes);
+    	printf("Tiempo total: %lldms\n", total_time);
+    	printf("NPS medio  : %lld\n", avg_nps);
+    	printf("Signature  : %lld\n", total_nodes);
 }
 
 static long long get_movetime (char *line, int side) {
@@ -190,6 +244,9 @@ int main (int argc, char *argv[]) {
 
 		} else if (strncmp(line, "position", 8) == 0) {
 			num_moves = parse_position(line, &pos);
+
+		} else if (strncmp(line, "bench", 5) == 0) {
+			bench(FEN_FILE);
 
 		} else if (strncmp(line, "go", 2) == 0) {
 			int depth = 30;

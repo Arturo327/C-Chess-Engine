@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Iinclude -O2 -march=native
+CFLAGS = -g -Iinclude -O2 -march=native
 OBJ = build/main.o build/motor.o build/eval.o build/movegen.o build/get_moves.o build/get_captures.o build/make_move.o build/init.o build/sort.o build/zobrist.o build/tt.o build/bitboards.o build/see.o
 
 all: build/chess
@@ -49,5 +49,35 @@ build/see.o: src/see.c
 run: build/chess
 	./build/chess
 
+test: build/chess
+	cp ~/Documentos/Proyectos/Chess/build/chess ~/Descargas/cutechess/build/R2Chess
+	cp ~/Documentos/Proyectos/Chess/build/chess ~/Descargas/lichess-bot/engines/R2Chess
+	cp ~/Documentos/Proyectos/Chess/build/chess ~/Descargas/arenalinux_64bit_3.10beta/Engines/R2Chess
+	@printf "Enter amount of rounds: "; \
+	read rounds; \
+	case "$$rounds" in \
+		''|*[!0-9]*) \
+			echo "Error: rounds must be a positive integer."; \
+			exit 1 ;; \
+	esac; \
+	rm ~/Descargas/results.txt 2> /dev/null; \
+	/home/artu/Descargas/cutechess/build/cutechess-cli -engine name="R2Chess" cmd="/home/artu/Descargas/cutechess/build/R2Chess" proto=uci -engine name="SF_2500" cmd="stockfish" proto=uci option.UCI_LimitStrength=true option.UCI_Elo=2500 -each tc=40/60 -rounds "$$rounds" -games 2 -repeat -pgnout ~/Descargas/matches.pgn >> ~/Descargas/results.txt & \
+	echo resultados en ~/Descargas/results.txt y las partidas jugadas en ~/Descargas/matches.pgn
+
+bench: build/chess
+	echo bench | ./build/chess
+
 clean:
 	rm -f build/*.o build/chess
+
+
+
+
+
+
+
+
+
+
+
+

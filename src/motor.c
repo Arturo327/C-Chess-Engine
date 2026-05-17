@@ -339,7 +339,22 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			printf("info string busqueda interrumpida con %lld nodos\n", nodes);
 			break;
 		}
-		printf("info depth %d score cp %d nodes %lld\n", i, score, nodes);
+
+		char promo_char = 0;
+		if (pos->board[candidate.from] == 0 && candidate.pieza >= 1 && candidate.pieza <= 4) {
+			char pc[] = {0, 'r', 'n', 'b', 'q'};
+			promo_char = pc[candidate.pieza];
+		}
+		if (pos->board[candidate.from] == 6 && candidate.pieza >= 7 && candidate.pieza <= 10) {
+			char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
+			promo_char = pc[candidate.pieza];
+		}
+		printf("info depth %d score cp %d nodes %lld pv %c%c%c%c", i, score, nodes,
+			'a' + (candidate.from & 7), '1' + (candidate.from >> 3),
+			'a' + (candidate.to & 7), '1' + (candidate.to >> 3));
+		if (promo_char) printf("%c\n", promo_char);
+		else printf("\n");
+
 		fflush(stdout);
 		best_move = candidate;
 		prev_score = score;
@@ -361,7 +376,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 	return best_move;
 }
 
-void bench_pos (int depth, Pos *pos, long long *total_time, long long *total_nodes) {
+int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_nodes, char *correct_move) {
 	tt_clear();
 	memset(history, 0, sizeof(history));
 	memset(killers, 0, sizeof(killers));
@@ -377,7 +392,8 @@ void bench_pos (int depth, Pos *pos, long long *total_time, long long *total_nod
 
 	Move best = {0};
 	int prev_score = 0;
-	for (int d = 1; d <= depth; d++) {
+	int d;
+	for (d = 1; d <= depth; d++) {
 		for (int pp = 0; pp < 12; pp++)
 			for (int s = 0; s < 64; s++)
 				history[pp][s] >>= 1;
@@ -405,26 +421,81 @@ void bench_pos (int depth, Pos *pos, long long *total_time, long long *total_nod
 	long long ms = t1 - t0;
 	if (ms == 0) ms = 1;
 
-	long long nps = nodes * 1000LL / ms;
-	printf("depth %2d | nodes %10lld | time %5lldms | nps %8lld | best %c%c%c%c",
-		depth, nodes, ms, nps,
-		'a' + (best.from & 7), '1' + (best.from >> 3),
-		'a' + (best.to	 & 7), '1' + (best.to	>> 3));
-
+	char move_str[6];
 	char promo_char = 0;
 	if (pos->board[best.from] == 0 && best.pieza >= 1 && best.pieza <= 4) {
-		char pc[] = {0, 'r', 'n', 'b', 'q'};
-		promo_char = pc[best.pieza];
+    		char pc[] = {0, 'r', 'n', 'b', 'q'};
+    		promo_char = pc[best.pieza];
 	}
 	if (pos->board[best.from] == 6 && best.pieza >= 7 && best.pieza <= 10) {
-		char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
-		promo_char = pc[best.pieza];
+    		char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
+    		promo_char = pc[best.pieza];
 	}
-	if (promo_char) printf("%c\n", promo_char);
-	else printf("\n");
 
+	if (promo_char) {
+    		snprintf(move_str, sizeof(move_str), "%c%c%c%c%c",
+             		'a' + (best.from & 7), '1' + (best.from >> 3),
+             		'a' + (best.to & 7), '1' + (best.to >> 3),
+             		promo_char);
+	} else {
+    		snprintf(move_str, sizeof(move_str), "%c%c%c%c",
+             		'a' + (best.from & 7), '1' + (best.from >> 3),
+             		'a' + (best.to & 7), '1' + (best.to >> 3));
+	}
+
+	if (d > depth) d = depth;
+
+	long long nps = nodes * 1000LL / ms;
+	printf("depth %2d | nodes %10lld | time %5lldms | nps %8lld | best %s\n", d, nodes, ms, nps, move_str);
 	fflush(stdout);
 
 	*total_nodes += nodes;
 	*total_time += ms;
+
+	int pieza;
+	char p_char = correct_move[0];
+    	if (p_char == 'R') {
+        	pieza = 1;
+	} else if (p_char == 'N') {
+		pieza = 2;
+	} else if (p_char == 'B') {
+		pieza = 3;
+	} else if (p_char == 'Q') {
+		pieza = 4;
+	} else if (p_char == 'K') {
+		pieza = 5;
+	} else {
+        	pieza = 0;
+    	}
+
+	int len = strlen(correct_move);
+	if (correct_move[len - 1] == '+' || correct_move[len - 1] == '#') {
+        	len--;
+	}
+	int sq = (correct_move[len - 1] - '1') * 8 + (correct_move[len - 2] - 'a');
+	if (pieza == best.pieza && sq == best.to) return 1;
+	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

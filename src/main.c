@@ -140,6 +140,7 @@ static void bench (const char *filename) {
     	long long total_time = 0;
     	int positions = 0;
     	int depth = 16;
+	int correct = 0;
 
     	generate_horse_table();
     	generate_king_table();
@@ -151,13 +152,20 @@ static void bench (const char *filename) {
 		Pos pos;
 		get_fen (line, &pos);
 
+		char *p = strstr(line, " bm ");
+		char best[7] = {0};
+		if (p != NULL) {
+			p += 4;
+			(void)sscanf(p, "%7[^;\n]", best);
+		}
+
 		tt_clear();
         	memset(history, 0, sizeof(history));
         	memset(killers, 0, sizeof(killers));
         	rep_top = 0;
         	rep_stack[rep_top++] = pos.hash;
 
-		bench_pos (depth, &pos, &total_time, &total_nodes);
+		correct += bench_pos (depth, &pos, &total_time, &total_nodes, best);
         	positions++;
     	}
 
@@ -175,7 +183,7 @@ static void bench (const char *filename) {
     	printf("Nodos total: %lld\n", total_nodes);
     	printf("Tiempo total: %lldms\n", total_time);
     	printf("NPS medio  : %lld\n", avg_nps);
-    	printf("Signature  : %lld\n", total_nodes);
+    	printf("Aciertos   : %d/30\n", correct);
 }
 
 static long long get_movetime (char *line, int side) {

@@ -142,9 +142,6 @@ static void bench (const char *filename) {
     	int depth = 16;
 	int correct = 0;
 
-    	generate_horse_table();
-    	generate_king_table();
-
 	char line[1024];
 	while (fgets(line, sizeof(line), f)) {
         	if (line[0] == '\n' || line[0] == '#') continue;

@@ -473,7 +473,7 @@ int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_node
         	len--;
 	}
 	int sq = (correct_move[len - 1] - '1') * 8 + (correct_move[len - 2] - 'a');
-	if (pieza == best.pieza && sq == best.to) return 1;
+	if (pieza == best.pieza % 6 && sq == best.to) return 1;
 	return 0;
 }
 

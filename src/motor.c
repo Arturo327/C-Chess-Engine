@@ -340,20 +340,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			break;
 		}
 
-		char promo_char = 0;
-		if (pos->board[candidate.from] == 0 && candidate.pieza >= 1 && candidate.pieza <= 4) {
-			char pc[] = {0, 'r', 'n', 'b', 'q'};
-			promo_char = pc[candidate.pieza];
-		}
-		if (pos->board[candidate.from] == 6 && candidate.pieza >= 7 && candidate.pieza <= 10) {
-			char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
-			promo_char = pc[candidate.pieza];
-		}
-		printf("info depth %d score cp %d nodes %lld pv %c%c%c%c", i, score, nodes,
-			'a' + (candidate.from & 7), '1' + (candidate.from >> 3),
-			'a' + (candidate.to & 7), '1' + (candidate.to >> 3));
-		if (promo_char) printf("%c\n", promo_char);
-		else printf("\n");
+		printf("info depth %d score cp %d nodes %lld\n", i, score, nodes);
 
 		fflush(stdout);
 		best_move = candidate;
@@ -385,7 +372,7 @@ int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_node
 
 	interrupted = 0;
 	nodes = 0;
-	deadline = get_time_ms() + 60000;
+	deadline = get_time_ms() + 1000000;
 
 	long long t0 = get_time_ms();
 	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
@@ -446,7 +433,7 @@ int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_node
 	if (d > depth) d = depth;
 
 	long long nps = nodes * 1000LL / ms;
-	printf("depth %2d | nodes %10lld | time %5lldms | nps %8lld | best %s\n", d, nodes, ms, nps, move_str);
+	printf("depth %2d | nodes %10lld | time %6lldms | nps %8lld | best %s\n", d, nodes, ms, nps, move_str);
 	fflush(stdout);
 
 	*total_nodes += nodes;

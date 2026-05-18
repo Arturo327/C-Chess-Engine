@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define FEN_FILE "bench.fen"
+#define FEN_FILE "files/bench.fen"
 
 static int char_to_piece(char c) {
 	switch (c) {
@@ -131,21 +131,21 @@ static int parse_position(const char *line, Pos *pos) {
 
 static void bench (const char *filename) {
 	FILE *f = fopen(filename, "r");
-    	if (!f) {
-        	fprintf(stderr, "bench: no se puede abrir %s\n", filename);
-        	return;
-    	}
+	if (!f) {
+		fprintf(stderr, "bench: no se puede abrir %s\n", filename);
+		return;
+	}
 
-    	long long total_nodes = 0;
-    	long long total_time = 0;
-    	int positions = 0;
-    	int depth = 16;
+	long long total_nodes = 0;
+	long long total_time = 0;
+	int positions = 0;
+	int depth = 15;
 	int correct = 0;
 
 	char line[1024];
 	while (fgets(line, sizeof(line), f)) {
-        	if (line[0] == '\n' || line[0] == '#') continue;
-        	line[strcspn(line, "\n")] = 0;
+		if (line[0] == '\n' || line[0] == '#') continue;
+		line[strcspn(line, "\n")] = 0;
 		Pos pos;
 		get_fen (line, &pos);
 
@@ -157,30 +157,30 @@ static void bench (const char *filename) {
 		}
 
 		tt_clear();
-        	memset(history, 0, sizeof(history));
-        	memset(killers, 0, sizeof(killers));
-        	rep_top = 0;
-        	rep_stack[rep_top++] = pos.hash;
+		memset(history, 0, sizeof(history));
+		memset(killers, 0, sizeof(killers));
+		rep_top = 0;
+		rep_stack[rep_top++] = pos.hash;
 
 		correct += bench_pos (depth, &pos, &total_time, &total_nodes, best);
-        	positions++;
-    	}
+		positions++;
+	}
 
-    	fclose(f);
+	fclose(f);
 
-    	if (positions == 0) {
-        	printf("bench: no se encontraron posiciones\n");
-        	return;
-    	}
+	if (positions == 0) {
+		printf("bench: no se encontraron posiciones\n");
+		return;
+	}
 
 	if (total_time == 0) total_time = 1;
-    	long long avg_nps = total_nodes * 1000LL / total_time;
-    	printf("\n=== BENCH RESULTADO ===\n");
-    	printf("Posiciones : %d\n", positions);
-    	printf("Nodos total: %lld\n", total_nodes);
-    	printf("Tiempo total: %lldms\n", total_time);
-    	printf("NPS medio  : %lld\n", avg_nps);
-    	printf("Aciertos   : %d/30\n", correct);
+	long long avg_nps = total_nodes * 1000LL / total_time;
+	printf("\n=== BENCH RESULTADO ===\n");
+	printf("Posiciones : %d\n", positions);
+	printf("Nodos total: %lld\n", total_nodes);
+	printf("Tiempo total: %lldms\n", total_time);
+	printf("NPS medio  : %lld\n", avg_nps);
+	printf("Aciertos   : %d/30\n", correct);
 }
 
 static long long get_movetime (char *line, int side) {

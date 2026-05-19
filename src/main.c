@@ -55,7 +55,7 @@ static void get_move (char *s, Pos *pos) {
 static void get_fen (const char *line, Pos *pos) {
 	int sq = 56;
 	const char *p = line;
-	memset(pos->board, 0xFF, 64);
+	memset(pos->board, ~0, 64 * sizeof(int));
 	memset(pos->bitboard, 0, 12 * sizeof(uint64_t));
 	while (*p && *p != ' ') {
 		if (*p == '/') {
@@ -98,14 +98,13 @@ static void get_fen (const char *line, Pos *pos) {
 	for (int i = 0; i < 12; i++) pos->occupied |= pos->bitboard[i];
 }
 
-static int parse_position(const char *line, Pos *pos) {
-	int move_count = 0;
+static void parse_position(const char *line, Pos *pos) {
 	char *start = strstr(line, " startpos");
 	if (start) {
 		reset(pos);
 	} else {
 		char *position = strstr(line, " fen ");
-		if (!position) return 0;
+		if (!position) return;
 		get_fen (position + 5, pos);
 	}
 
@@ -120,13 +119,11 @@ static int parse_position(const char *line, Pos *pos) {
 			if (p[0] >= 'a' && p[0] <= 'h' && p[2] >= 'a' && p[2] <= 'h') {
 				get_move(p, pos);
 				rep_stack[rep_top++] = pos->hash;
-				move_count++;
 			}
 			while (*p && *p != ' ' && *p != '\n') p++;
 			while (*p == ' ') p++;
 		}
 	} 
-	return move_count;
 }
 
 static void bench (const char *filename) {
@@ -139,7 +136,7 @@ static void bench (const char *filename) {
 	long long total_nodes = 0;
 	long long total_time = 0;
 	int positions = 0;
-	int depth = 15;
+	int depth = 14;
 	int correct = 0;
 
 	char line[1024];
@@ -155,12 +152,6 @@ static void bench (const char *filename) {
 			p += 4;
 			(void)sscanf(p, "%7[^;\n]", best);
 		}
-
-		tt_clear();
-		memset(history, 0, sizeof(history));
-		memset(killers, 0, sizeof(killers));
-		rep_top = 0;
-		rep_stack[rep_top++] = pos.hash;
 
 		correct += bench_pos (depth, &pos, &total_time, &total_nodes, best);
 		positions++;
@@ -201,7 +192,7 @@ static long long get_movetime (char *line, int side) {
 	long long time_for_move;
 	if (movetime > 0) {
 		time_for_move = movetime - 50;
-	} else {
+	} else if (wtime > 0 || btime > 0) {
 		long long my_time = (side == 0) ? wtime : btime;
 		long long my_inc = (side == 0) ? winc : binc;
 		if (my_time < 0) my_time = 10000;
@@ -213,11 +204,11 @@ static long long get_movetime (char *line, int side) {
 		}
 		if (time_for_move > my_time * 8 / 10) time_for_move = my_time * 8 / 10;
 		if (time_for_move < 10) time_for_move = 10;
-	}
+	} else time_for_move = 600000;
 	return time_for_move;
 }
 
-int main (int argc, char *argv[]) {
+int main (void) {
 	generate_horse_table();
 	generate_king_table();
 	init_magics();
@@ -229,7 +220,6 @@ int main (int argc, char *argv[]) {
 	Pos pos;
 	reset(&pos);
 	char line[4096];
-	int num_moves = 0;
 	while (fgets(line, sizeof(line), stdin)) {
 		if (strncmp(line, "ucinewgame", 10) == 0) {
 			reset(&pos);
@@ -248,7 +238,7 @@ int main (int argc, char *argv[]) {
 			fflush(stdout);
 
 		} else if (strncmp(line, "position", 8) == 0) {
-			num_moves = parse_position(line, &pos);
+			parse_position(line, &pos);
 
 		} else if (strncmp(line, "bench", 5) == 0) {
 			bench(FEN_FILE);

@@ -10,11 +10,11 @@ Move killers[MAX_DEPTH][2] = {0};
 static int score_move(Move *m, int ply, Pos *pos) {
 	if (m->capture != -1) {
 		int see_val = see(pos, m->to, values[m->capture % 6], m->from, values[m->pieza % 6]);
-        	if (see_val >= 0) {
-            		return 2000000 + see_val;
-        	} else {
-            		return 1000000 + see_val;
-        	}
+		if (see_val >= 0) {
+			return 2000000 + see_val;
+		} else {
+			return 1000000 + see_val;
+		}
 	}
 
 	if (m->to >= 56 && m->from >= 48) {
@@ -38,7 +38,7 @@ static int score_move(Move *m, int ply, Pos *pos) {
 	return history[m->pieza][m->to];
 }
 
-void sort_moves_quiescence (Move *moves, int count, Pos *pos, int *see_scores) {
+void sort_moves_quiescence (Move *moves, int count, int *see_scores) {
 	int scores[count];
 	for (int i = 0; i < count; i++)
 		if (moves[i].capture != -1) scores[i] = see_scores[i] + 2000000;

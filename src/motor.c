@@ -57,7 +57,9 @@ void shift_killers (void) {
 
 int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 	int side = pos->side;
-	int king_sq = __builtin_ctzll(pos->bitboard[side ? 11 : 5]);
+	uint64_t b = pos->bitboard[side ? 11 : 5];
+	if (!b) return -100000 + ply;
+	int king_sq = __builtin_ctzll(b);
 	int in_check = is_attacked(king_sq, side, pos);
 
 	int tt_score = 0;
@@ -97,20 +99,23 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		if (side) count = get_b_captures(moves, pos);
 		else count = get_w_captures(moves, pos);
 	}
+
+	if (count == 0) {
+		if (in_check) return -100000 + ply;
+		return alpha;
+	}
 	
 	int see_scores[count];
 	for (int i = 0; i < count; i++) {
 		if (moves[i].capture != -1) {
 			see_scores[i] = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
-		}
+		} else see_scores[i] = 0;
 	} 
 
-	sort_moves_quiescence (moves, count, pos, see_scores);
+	sort_moves_quiescence (moves, count, see_scores);
 
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
-
-		if (moves[i].capture == 5 || moves[i].capture == 11) continue;
 
 		if (!in_check && moves[i].capture != -1) {
 			if (see_scores[i] < 0) continue;
@@ -121,7 +126,9 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		Pos child = *pos;
 		apply_move(&moves[i], &child);
 
-		int ksq = __builtin_ctzll(child.bitboard[side ? 11 : 5]);
+		uint64_t a = child.bitboard[side ? 11 : 5];
+		if (!a) continue;
+		int ksq = __builtin_ctzll(a);
 		if (is_attacked(ksq, side, &child)) continue;
 		legal++;
 
@@ -174,7 +181,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		pos->bitboard[side ? 7 : 1] | pos->bitboard[side ? 8 : 2] |
 		pos->bitboard[side ? 9 : 3] | pos->bitboard[side ? 10 : 4]);
 
-	int opp_king = __builtin_ctzll(pos->bitboard[side ? 5 : 11]);
+	uint64_t c = pos->bitboard[side ? 5 : 11];
+	if (!c) return 100000 - ply;
+	int opp_king = __builtin_ctzll(c);
 
 	if (depth >= 3 && non_pawn_material && null_allowed && !en_jaque) {
 		Pos null_pos = *pos;
@@ -185,9 +194,9 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		null_pos.hash ^= zob_ep[old_ep_idx];
 
 		int reduction = 3 + depth / 6;
-		int c = depth - 1 - reduction;
-		if (c < 0) c = 0;
-		int null_eval = -negamax(&null_pos, c, ply + 1, -beta, -beta + 1, NULL, 0, 0);
+		int null_depth = depth - 1 - reduction;
+		if (null_depth < 0) null_depth = 0;
+		int null_eval = -negamax(&null_pos, null_depth, ply + 1, -beta, -beta + 1, NULL, 0, 0);
 		
 		if (null_eval >= beta) return beta;
 	}
@@ -214,6 +223,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
+	if (depth >= 4 && !has_tt_move) depth--;
+
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
 
 	int maxEval = -1000000;
@@ -223,15 +234,13 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 
 	for (int i = 0; i < total_moves; i++) {
 
-		if (actual_move->capture == 5 || actual_move->capture == 11) {
-			actual_move++;
-			continue;
-		}
-
 		child = *pos;
 		apply_move(actual_move, &child);
 
-		int king_sq = __builtin_ctzll(child.bitboard[side ? 11 : 5]);
+		uint64_t a = child.bitboard[side ? 11 : 5];
+		if (!a) { actual_move++; continue; }
+		int king_sq = __builtin_ctzll(a);
+
 		if (is_attacked(king_sq, side, &child)) {
 			actual_move++;
 			continue;
@@ -370,79 +379,37 @@ int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_node
 	rep_top = 0;
 	rep_stack[rep_top++] = pos->hash;
 
-	interrupted = 0;
-	nodes = 0;
-	deadline = get_time_ms() + 1000000;
-
 	long long t0 = get_time_ms();
-	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
 
-	Move best = {0};
-	int prev_score = 0;
-	int d;
-	for (d = 1; d <= depth; d++) {
-		for (int pp = 0; pp < 12; pp++)
-			for (int s = 0; s < 64; s++)
-				history[pp][s] >>= 1;
-
-		int score;
-		if (d < 3) {
-			score = negamax(pos, d, 0, -1000000, 1000000, &best, 1, en_jaque);
-		} else {
-			int delta = 50;
-			int alpha = prev_score - delta, beta = prev_score + delta;
-			int ad = delta, bd = delta;
-			while (1) {
-				score = negamax(pos, d, 0, alpha, beta, &best, 1, en_jaque);
-				if (interrupted) break;
-				if (score <= alpha) { ad <<= 1; alpha = score - ad; }
-				else if (score >= beta) { bd <<= 1; beta = score + bd; }
-				else break;
-			}
-		}	
-		if (interrupted) break;
-		prev_score = score;
-	}
+	Move best_move = bot_move(depth, 600000, pos);
 
 	long long t1 = get_time_ms();
 	long long ms = t1 - t0;
 	if (ms == 0) ms = 1;
 
-	char move_str[6];
-	char promo_char = 0;
-	if (pos->board[best.from] == 0 && best.pieza >= 1 && best.pieza <= 4) {
-    		char pc[] = {0, 'r', 'n', 'b', 'q'};
-    		promo_char = pc[best.pieza];
-	}
-	if (pos->board[best.from] == 6 && best.pieza >= 7 && best.pieza <= 10) {
-    		char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
-    		promo_char = pc[best.pieza];
-	}
-
-	if (promo_char) {
-    		snprintf(move_str, sizeof(move_str), "%c%c%c%c%c",
-             		'a' + (best.from & 7), '1' + (best.from >> 3),
-             		'a' + (best.to & 7), '1' + (best.to >> 3),
-             		promo_char);
-	} else {
-    		snprintf(move_str, sizeof(move_str), "%c%c%c%c",
-             		'a' + (best.from & 7), '1' + (best.from >> 3),
-             		'a' + (best.to & 7), '1' + (best.to >> 3));
-	}
-
-	if (d > depth) d = depth;
-
 	long long nps = nodes * 1000LL / ms;
-	printf("depth %2d | nodes %10lld | time %6lldms | nps %8lld | best %s\n", d, nodes, ms, nps, move_str);
+	printf("depth %2d | nodes %10lld | time %6lldms | nps %8lld | best %c%c%c%c", depth, nodes, ms, nps, 'a' + (best_move.from & 7), '1' + (best_move.from >> 3), 'a' + (best_move.to & 7), '1' + (best_move.to >> 3));
+
+	char promo_char = 0;
+	if (pos->board[best_move.from] == 0 && best_move.pieza >= 1 && best_move.pieza <= 4) {
+		char pc[] = {0, 'r', 'n', 'b', 'q'};
+		promo_char = pc[best_move.pieza];
+	}
+	if (pos->board[best_move.from] == 6 && best_move.pieza >= 7 && best_move.pieza <= 10) {
+		char pc[] = {0,0,0,0,0,0,0,'r','n','b','q'};
+		promo_char = pc[best_move.pieza];
+	}
+	if (promo_char) printf("%c\n", promo_char);
+	else printf("\n");
 	fflush(stdout);
 
-	*total_nodes += nodes;
 	*total_time += ms;
+	*total_nodes += nodes;
 
 	int pieza;
 	char p_char = correct_move[0];
-    	if (p_char == 'R') {
-        	pieza = 1;
+	if (p_char == 'R') {
+		pieza = 1;
 	} else if (p_char == 'N') {
 		pieza = 2;
 	} else if (p_char == 'B') {
@@ -452,15 +419,15 @@ int bench_pos (int depth, Pos *pos, long long *total_time, long long *total_node
 	} else if (p_char == 'K') {
 		pieza = 5;
 	} else {
-        	pieza = 0;
-    	}
+		pieza = 0;
+	}
 
 	int len = strlen(correct_move);
 	if (correct_move[len - 1] == '+' || correct_move[len - 1] == '#') {
-        	len--;
+		len--;
 	}
 	int sq = (correct_move[len - 1] - '1') * 8 + (correct_move[len - 2] - 'a');
-	if (pieza == best.pieza % 6 && sq == best.to) return 1;
+	if (pieza == best_move.pieza % 6 && sq == best_move.to) return 1;
 	return 0;
 }
 

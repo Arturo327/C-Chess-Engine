@@ -148,13 +148,13 @@ void reset_eval_masks (void) {
 		col_mask[i] = 0x0101010101010101ULL << i;
 	}
 	for (int sq = 0; sq < 64; sq++) {
-    		int col = sq & 7;
+		int col = sq & 7;
 		int next_rank = (sq & ~7) + 8;
 		uint64_t ahead = next_rank < 64 ? (UINT64_MAX << next_rank) : 0ULL;
-    		uint64_t column = col_mask[col];
-    		if (col > 0) column |= col_mask[col - 1];
-    		if (col < 7) column |= col_mask[col + 1];
-    		passed_mask_w[sq] = ahead & column;
+		uint64_t column = col_mask[col];
+		if (col > 0) column |= col_mask[col - 1];
+		if (col < 7) column |= col_mask[col + 1];
+		passed_mask_w[sq] = ahead & column;
 
 		int rank_start = sq & ~7;
 		ahead = rank_start > 0 ? (UINT64_MAX >> (64 - rank_start)) : 0ULL;
@@ -174,9 +174,9 @@ void reset_eval_masks (void) {
 		for (int j = i - 1; j <= i + 1; j++) {
 			if (j < 0 || j > 7) continue;
 			shield_w |= 1ULL << (8 + j);
-        		shield_w |= 1ULL << (16 + j);
+			shield_w |= 1ULL << (16 + j);
 			shield_b |= 1ULL << (48 + j);
-        		shield_b |= 1ULL << (40 + j);
+			shield_b |= 1ULL << (40 + j);
 		}
 		king_shield_w[i] = shield_w;
 		king_shield_b[i] = shield_b;
@@ -191,7 +191,7 @@ void reset_eval_masks (void) {
 		int col_b = sq & 7;
 		int fila_b = sq >> 3;
 		for (int r = fila_b + 1; r < 8; r++) {
-    			col_behind_b[sq] |= (1ULL << (r * 8 + col_b));
+			col_behind_b[sq] |= (1ULL << (r * 8 + col_b));
 		}
 	}
 }
@@ -252,15 +252,15 @@ int eval_pos (Pos *pos) {
 			eval += (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
 			if (!p) {
 				eval += passed_withe_bonus(sq, pos->bitboard[6], pos->bitboard[1], pos->bitboard[7], fase);
-    				if (!(pos->bitboard[0] & adjacent_mask[sq & 7]))
-        				eval -= (5 * fase + 15 * (24-fase)) / 24;
+				if (!(pos->bitboard[0] & adjacent_mask[sq & 7]))
+					eval -= (5 * fase + 15 * (24-fase)) / 24;
 			} else if (p == 1) {
 				uint64_t col = col_mask[sq & 7];
 				if (!(all_pawns & col)) eval += 20;
 				else if (!(pos->bitboard[0] & col)) eval += 10;
 			} else if (p == 5 && sq <= 7) {
 				int pawns_present = __builtin_popcountll(pos->bitboard[0] & king_shield_w[sq]);
-    				eval += (pawns_present - 3) * 20 * fase / 24;
+				eval += (pawns_present - 3) * 20 * fase / 24;
 			}
 		}
 		bits = pos->bitboard[p + 6];
@@ -271,15 +271,15 @@ int eval_pos (Pos *pos) {
 			eval -= (tables_mg[p][sq] * fase + tables_eg[p][sq] * (24 - fase)) / 24;
 			if (!p) {
 				eval -= passed_black_bonus(sq_real, pos->bitboard[0], pos->bitboard[7], pos->bitboard[1], fase);
-    				if (!(pos->bitboard[6] & adjacent_mask[sq & 7]))
-        				eval += (5 * fase + 15 * (24-fase)) / 24;
+				if (!(pos->bitboard[6] & adjacent_mask[sq & 7]))
+					eval += (5 * fase + 15 * (24-fase)) / 24;
 			} else if (p == 1) {
 				uint64_t col = col_mask[sq & 7];
 				if (!(all_pawns & col)) eval -= 20;
 				else if (!(pos->bitboard[6] & col)) eval -= 10;
 			} else if (p == 5 && sq <= 7) {
 				int pawns_present = __builtin_popcountll(pos->bitboard[6] & king_shield_b[sq]);
-    				eval -= (pawns_present - 3) * 20 * fase / 24;
+				eval -= (pawns_present - 3) * 20 * fase / 24;
 			}
 		}
 	}
@@ -291,10 +291,10 @@ int eval_pos (Pos *pos) {
 	for (int i = 0; i < 8; i++) {
 		mask = col_mask[i];
 		int w = __builtin_popcountll(pos->bitboard[0] & mask);
-    		int b = __builtin_popcountll(pos->bitboard[6] & mask);
+		int b = __builtin_popcountll(pos->bitboard[6] & mask);
 
-    		if (w > 1) eval -= (w - 1) * 15;
-    		if (b > 1) eval += (b - 1) * 15;
+		if (w > 1) eval -= (w - 1) * 15;
+		if (b > 1) eval += (b - 1) * 15;
 	}
 
 	

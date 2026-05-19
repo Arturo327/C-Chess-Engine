@@ -10,24 +10,24 @@ int is_attacked(int sq, int by_white, Pos *pos) {
 	uint64_t pawns = pos->bitboard[pawn];
 	if (pawns) {
 		uint64_t patt;
-        	if (by_white) {
-            		uint64_t col_a = 0x0101010101010101ULL;
-            		uint64_t col_h = 0x8080808080808080ULL;
-            		uint64_t target = 1ULL << sq;
-            		patt = ((target >> 7) & ~col_a) | ((target >> 9) & ~col_h);
-        	} else {
-            		uint64_t col_a = 0x0101010101010101ULL;
-            		uint64_t col_h = 0x8080808080808080ULL;
-            		uint64_t target = 1ULL << sq;
-            		patt = ((target << 7) & ~col_h) | ((target << 9) & ~col_a);
-        	}
-        	patt &= pawns;
-        	if (patt) return 1;
+		if (by_white) {
+			uint64_t col_a = 0x0101010101010101ULL;
+			uint64_t col_h = 0x8080808080808080ULL;
+			uint64_t target = 1ULL << sq;
+			patt = ((target >> 7) & ~col_a) | ((target >> 9) & ~col_h);
+		} else {
+			uint64_t col_a = 0x0101010101010101ULL;
+			uint64_t col_h = 0x8080808080808080ULL;
+			uint64_t target = 1ULL << sq;
+			patt = ((target << 7) & ~col_h) | ((target << 9) & ~col_a);
+		}
+		patt &= pawns;
+		if (patt) return 1;
 	}
 
 	int horse = by_white ? 2 : 8;
-    	uint64_t horses = pos->bitboard[horse] & horse_moves[sq];
-    	if (horses) return 1;
+	uint64_t horses = pos->bitboard[horse] & horse_moves[sq];
+	if (horses) return 1;
 
 	uint64_t diag_attackers = pos->bitboard[by_white ? 3 : 9] | pos->bitboard[by_white ? 4 : 10];	
 	if (diag_attackers) {
@@ -46,10 +46,10 @@ int is_attacked(int sq, int by_white, Pos *pos) {
 	}
 
 	int king = by_white ? 5 : 11;
-    	uint64_t kings = pos->bitboard[king] & king_moves[sq];
-    	if (kings) return 1;
+	uint64_t kings = pos->bitboard[king] & king_moves[sq];
+	if (kings) return 1;
 
-    	return 0;
+	return 0;
 }
 
 uint64_t get_w_pawn_moves (int from, uint64_t occupied) {

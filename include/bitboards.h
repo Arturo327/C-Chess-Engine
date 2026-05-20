@@ -11,6 +11,7 @@ extern uint64_t rook_masks[64];
 extern uint64_t alfil_masks[64];
 extern int rook_bits[64];
 extern int alfil_bits[64];
+extern uint64_t pawn_attacks[2][64];
 
 void init_magics(void);
 

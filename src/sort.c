@@ -76,24 +76,16 @@ void sort_moves (Move *moves, int count, int ply, Pos *pos) {
 		scores[i] = score_move(&moves[i], ply, pos);
 
 	for (int i = 0; i < count - 1; i++) {
-		int best = i;
-		int best_score = scores[i];
-		for (int j = i + 1; j < count; j++) {
-			int act_score = scores[j];
-			if (act_score > best_score) {
-				best = j;
-				best_score = act_score;
-			}
+		Move key = moves[i];
+		int key_score = scores[i];
+		int j = i - 1;
+		while (j >= 0 && scores[j] < key_score) {
+			moves[j + 1] = moves[j];
+			scores[j + 1] = scores[j];
+			j--;
 		}
-		if (best != i) {
-			Move tmp = moves[i];
-			moves[i] = moves[best];
-			moves[best] = tmp;
-
-			int stmp = scores[i];
-			scores[i] = scores[best];
-			scores[best] = stmp;
-		}
+		moves[j + 1] = key;
+		scores[j + 1] = key_score;
 	}
 }
 

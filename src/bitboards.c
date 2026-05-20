@@ -4,12 +4,17 @@
 
 uint64_t rook_attack_table[64][4096] = {0};
 uint64_t alfil_attack_table[64][512] = {0};
+
 uint64_t rook_magics[64] = {0};
 uint64_t alfil_magics[64] = {0};
+
 uint64_t rook_masks[64] = {0};
 uint64_t alfil_masks[64] = {0};
+
 int rook_bits[64] = {0};
 int alfil_bits[64] = {0};
+
+uint64_t pawn_attacks[2][64] = {0};
 
 static uint64_t state = 0x123456789ABCDEF0ULL;
 static uint64_t xorshift64(void) {
@@ -154,6 +159,19 @@ void init_magics(void) {
 			int idx = (occ * alfil_magics[sq]) >> (64 - n);
 			alfil_attack_table[sq][idx] = alfil_attacks_slow(sq, occ);
 			occ = (occ - alfil_masks[sq]) & alfil_masks[sq];
+		}
+
+		pawn_attacks[0][sq] = 0;
+		pawn_attacks[1][sq] = 0;
+
+		if ((sq & 7) != 0) {
+			if (sq <= 56) pawn_attacks[0][sq] |= 1ULL << (sq + 7);
+			if (sq >= 9) pawn_attacks[1][sq] |= 1ULL << (sq - 9);
+		}
+
+		if ((sq & 7) != 7) {
+			if (sq <= 54) pawn_attacks[0][sq] |= 1ULL << (sq + 9);
+			if (sq >= 7) pawn_attacks[1][sq] |= 1ULL << (sq - 7);
 		}
 	}
 }

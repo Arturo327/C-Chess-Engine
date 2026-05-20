@@ -13,7 +13,7 @@ typedef struct {
 
 typedef struct {
 	uint64_t bitboard[12];
-	int board[64];
+	int8_t board[64];
 	uint64_t hash;
 	uint64_t occupied;
 	int8_t en_passant;

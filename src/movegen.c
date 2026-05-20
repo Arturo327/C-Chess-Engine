@@ -5,21 +5,15 @@
 #include "make_move.h"
 #include "bitboards.h"
 
-int is_attacked(int sq, int by_white, Pos *pos) {
+int is_attacked (int sq, int by_white, Pos *pos) {
 	int pawn = by_white ? 0 : 6;
 	uint64_t pawns = pos->bitboard[pawn];
 	if (pawns) {
 		uint64_t patt;
 		if (by_white) {
-			uint64_t col_a = 0x0101010101010101ULL;
-			uint64_t col_h = 0x8080808080808080ULL;
-			uint64_t target = 1ULL << sq;
-			patt = ((target >> 7) & ~col_a) | ((target >> 9) & ~col_h);
+			patt = pawn_attacks[by_white][sq] & pos->bitboard[pawn];
 		} else {
-			uint64_t col_a = 0x0101010101010101ULL;
-			uint64_t col_h = 0x8080808080808080ULL;
-			uint64_t target = 1ULL << sq;
-			patt = ((target << 7) & ~col_h) | ((target << 9) & ~col_a);
+			patt = pawn_attacks[by_white][sq] & pos->bitboard[pawn];
 		}
 		patt &= pawns;
 		if (patt) return 1;
@@ -62,16 +56,11 @@ uint64_t get_w_pawn_moves (int from, uint64_t occupied) {
 }
 
 uint64_t get_w_pawn_captures (int from, uint64_t enemy, int en_passant) {
-	uint64_t attacks = 0;
-	uint64_t pawn = 1ULL << from;
-	uint64_t col_a = 0x0101010101010101ULL;
-	uint64_t col_h = 0x8080808080808080ULL;
-	attacks |= (pawn << 9) & enemy & ~col_a;
-	attacks |= (pawn << 7) & enemy & ~col_h;
+	uint64_t attacks = pawn_attacks[0][from] & enemy;
 	if (en_passant != -1) {
 		uint64_t ep = 1ULL << en_passant;
-		if ((pawn << 9) & ep & ~col_a) attacks |= ep;
-		if ((pawn << 7) & ep & ~col_h) attacks |= ep;
+		if (pawn_attacks[0][from] & ep)
+			attacks |= ep;
 	}
 	return attacks;
 }
@@ -86,16 +75,11 @@ uint64_t get_b_pawn_moves (int from, uint64_t occupied) {
 }
 
 uint64_t get_b_pawn_captures (int from, uint64_t enemy, int en_passant) {
-	uint64_t attacks = 0;
-	uint64_t pawn = 1ULL << from;
-	uint64_t col_a = 0x0101010101010101ULL;
-	uint64_t col_h = 0x8080808080808080ULL;
-	attacks |= (pawn >> 7) & enemy & ~col_a;
-	attacks |= (pawn >> 9) & enemy & ~col_h;
+	uint64_t attacks = pawn_attacks[1][from] & enemy;
 	if (en_passant != -1) {
 		uint64_t ep = 1ULL << en_passant;
-		if ((pawn >> 7) & ep & ~col_a) attacks |= ep;
-		if ((pawn >> 9) & ep & ~col_h) attacks |= ep;
+		if (pawn_attacks[1][from] & ep)
+			attacks |= ep;
 	}
 	return attacks;
 }

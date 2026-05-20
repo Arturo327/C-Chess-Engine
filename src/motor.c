@@ -314,12 +314,13 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 
 	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
 
+	for (int p = 0; p < 12; p++)
+		for (int sq = 0; sq < 64; sq++)
+			history[p][sq] >>= 1;
+
 	for (int i = 1; i <= max_depth; i++) {
 		int saved_rep_top = rep_top;
 		int score;
-		for (int p = 0; p < 12; p++)
-			for (int sq = 0; sq < 64; sq++)
-				history[p][sq] >>= 1;
 		if (i < 3) {
 			score = negamax(pos, i, 0, -1000000, 1000000, &candidate, 1, en_jaque);
 		} else {

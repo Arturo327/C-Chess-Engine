@@ -223,8 +223,6 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	if (depth >= 4 && !has_tt_move) depth--;
-
 	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
 
 	int maxEval = -1000000;
@@ -312,6 +310,7 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 	Move candidate = {0};
 	shift_killers();
 	int prev_score = 0;
+	long long t0 = get_time_ms();
 
 	int en_jaque = is_attacked(__builtin_ctzll(pos->bitboard[pos->side ? 11 : 5]), pos->side, pos);
 
@@ -349,7 +348,11 @@ Move bot_move (int max_depth, long long time, Pos *pos) {
 			break;
 		}
 
-		printf("info depth %d score cp %d nodes %lld\n", i, score, nodes);
+		long long t1 = get_time_ms();
+		long long elapsed = t1 - t0;
+		if (elapsed <= 0) elapsed = 1;
+		long long nps = (nodes * 1000LL) / elapsed;
+		printf("info depth %d score cp %d nodes %lld nps %lld time %lld\n", i, score, nodes, nps, elapsed);
 
 		fflush(stdout);
 		best_move = candidate;

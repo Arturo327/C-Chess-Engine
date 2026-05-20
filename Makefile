@@ -50,9 +50,9 @@ run: build/R2Chess
 	./build/R2Chess
 
 test: build/R2Chess
-	cp build/R2Chess ~/Descargas/cutechess/build/R2Chess
-	cp build/R2Chess ~/Descargas/lichess-bot/engines/R2Chess
-	cp build/R2Chess ~/Descargas/arenalinux_64bit_3.10beta/Engines/R2Chess
+	cp build/R2Chess ~/Descargas/cutechess/build/R2Chess 2> /dev/null
+	cp build/R2Chess ~/Descargas/lichess-bot/engines/R2Chess 2> /dev/null
+	cp build/R2Chess ~/Descargas/arenalinux_64bit_3.10beta/Engines/R2Chess 2> /dev/null
 	@printf "Enter amount of rounds: "; \
 	read rounds; \
 	case "$$rounds" in \

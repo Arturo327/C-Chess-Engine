@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Iinclude -O2 -march=native
+CFLAGS = -g -Wall -Wextra -Iinclude -O2 -march=native
 OBJ = build/main.o build/motor.o build/eval.o build/movegen.o build/get_moves.o build/get_captures.o build/make_move.o build/init.o build/sort.o build/zobrist.o build/tt.o build/bitboards.o build/see.o
 
 all: build/R2Chess

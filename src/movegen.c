@@ -10,11 +10,7 @@ int is_attacked (int sq, int by_white, Pos *pos) {
 	uint64_t pawns = pos->bitboard[pawn];
 	if (pawns) {
 		uint64_t patt;
-		if (by_white) {
-			patt = pawn_attacks[by_white][sq] & pos->bitboard[pawn];
-		} else {
-			patt = pawn_attacks[by_white][sq] & pos->bitboard[pawn];
-		}
+		patt = pawn_attacks[by_white][sq] & pos->bitboard[pawn];
 		patt &= pawns;
 		if (patt) return 1;
 	}

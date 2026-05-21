@@ -50,3 +50,4 @@ void tt_store(uint64_t hash, int score, int depth, int flag, Move *best) {
 		always_slot->best = best ? *best : (Move){0};
 	}
 }
+

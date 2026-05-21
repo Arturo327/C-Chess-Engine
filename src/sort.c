@@ -7,14 +7,20 @@
 int history[12][64] = {0};
 Move killers[MAX_DEPTH][2] = {0};
 
-static int score_move(Move *m, int ply, Pos *pos) {
+static int mvv_lva[6][6] = {
+	{ 15, 14, 13, 12, 11, 10 },
+	{ 25, 24, 23, 22, 21, 20 },
+	{ 35, 34, 33, 32, 31, 30 },
+	{ 45, 44, 43, 42, 41, 40 },
+	{ 55, 54, 53, 52, 51, 50 },
+	{ 65, 64, 63, 62, 61, 60 },
+};
+
+int score_move (Move *m, int ply) {
 	if (m->capture != -1) {
-		int see_val = see(pos, m->to, values[m->capture % 6], m->from, values[m->pieza % 6]);
-		if (see_val >= 0) {
-			return 2000000 + see_val;
-		} else {
-			return 1000000 + see_val;
-		}
+		int victim   = m->capture % 6;
+		int attacker = m->pieza % 6;
+		return 2000000 + mvv_lva[victim][attacker];
 	}
 
 	if (m->to >= 56 && m->from >= 48) {
@@ -38,44 +44,8 @@ static int score_move(Move *m, int ply, Pos *pos) {
 	return history[m->pieza][m->to];
 }
 
-void sort_moves_quiescence (Move *moves, int count, int *see_scores) {
-	int scores[count];
-	for (int i = 0; i < count; i++)
-		if (moves[i].capture != -1) scores[i] = see_scores[i] + 2000000;
-		else scores[i] = history[moves[i].pieza][moves[i].to];
-
-	for (int i = 0; i < count - 1; i++) {
-		int best = i;
-		int best_score = scores[i];
-		for (int j = i + 1; j < count; j++) {
-			int act_score = scores[j];
-			if (act_score > best_score) {
-				best = j;
-				best_score = act_score;
-			}
-		}
-		if (best != i) {
-			Move tmp = moves[i];
-			moves[i] = moves[best];
-			moves[best] = tmp;
-
-			int stmp = scores[i];
-			scores[i] = scores[best];
-			scores[best] = stmp;
-
-			int stmp_see = see_scores[i];
-			see_scores[i] = see_scores[best];
-			see_scores[best] = stmp_see;
-		}
-	}
-}
-
-void sort_moves (Move *moves, int count, int ply, Pos *pos) {
-	int scores[count];
-	for (int i = 0; i < count; i++) 
-		scores[i] = score_move(&moves[i], ply, pos);
-
-	for (int i = 0; i < count - 1; i++) {
+void sort_moves (Move *moves, int count, int *scores) {
+	for (int i = 1; i < count; i++) {
 		Move key = moves[i];
 		int key_score = scores[i];
 		int j = i - 1;

@@ -77,17 +77,15 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 
 	int stand_pat = (side == 0) ? eval_pos(pos) : -eval_pos(pos);
 	if (!in_check) {
-		if (raw) {
-			if (entry.flag == TT_LOWER && tt_score > stand_pat)
-				stand_pat = tt_score;
-		}
+		if (raw && entry.flag == TT_LOWER && tt_score > stand_pat)
+			stand_pat = tt_score;
 
 		if (depth == 0) return stand_pat;
 		if (stand_pat + 1000 < alpha) return alpha;
 		if (stand_pat >= beta) return beta;
 		if (stand_pat > alpha) alpha = stand_pat;
 	} else {
-		if (depth < -3) return stand_pat;
+		if (depth < -3) return alpha;
 	}
 
 	Move moves[256];
@@ -105,22 +103,23 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 		return alpha;
 	}
 	
-	int see_scores[count];
+	int scores[count];
 	for (int i = 0; i < count; i++) {
-		if (moves[i].capture != -1) {
-			see_scores[i] = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
-		} else see_scores[i] = 0;
-	} 
+		scores[i] = score_move(moves + i, ply);
+	}
 
-	sort_moves_quiescence (moves, count, see_scores);
+	sort_moves (moves, count, scores);
 
 	int legal = 0;
 	for (int i = 0; i < count; i++) {
 
 		if (!in_check && moves[i].capture != -1) {
-			if (see_scores[i] < 0) continue;
+			int victim_val = values[moves[i].capture % 6];
 			int delta_margin = 200;
-			if (stand_pat + values[moves[i].capture % 6] + delta_margin < alpha) continue;
+			if (stand_pat + victim_val + delta_margin < alpha) break;
+
+			int see_val = see(pos, moves[i].to, victim_val, moves[i].from, values[moves[i].pieza % 6]);
+			if (see_val < 0) continue;
 		}
 
 		Pos child = *pos;
@@ -223,7 +222,14 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		}
 	}
 
-	sort_moves(moves + has_tt_move, total_moves - has_tt_move, ply, pos);
+	int scores[total_moves - has_tt_move];
+	actual_move = moves + has_tt_move;
+	for (int i = 0; i < total_moves - has_tt_move; i++) {
+		scores[i] = score_move(actual_move, ply);
+		actual_move++;
+	}
+
+	sort_moves(moves + has_tt_move, total_moves - has_tt_move, scores);
 
 	int maxEval = -1000000;
 	Pos child;
@@ -302,6 +308,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 }
 
 Move bot_move (int max_depth, long long time, Pos *pos) {
+
 	deadline = get_time_ms() + time;
 	interrupted = 0;
 	nodes = 0;

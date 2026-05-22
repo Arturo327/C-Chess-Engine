@@ -7,20 +7,15 @@
 int history[12][64] = {0};
 Move killers[MAX_DEPTH][2] = {0};
 
-static int mvv_lva[6][6] = {
-	{ 15, 14, 13, 12, 11, 10 },
-	{ 25, 24, 23, 22, 21, 20 },
-	{ 35, 34, 33, 32, 31, 30 },
-	{ 45, 44, 43, 42, 41, 40 },
-	{ 55, 54, 53, 52, 51, 50 },
-	{ 65, 64, 63, 62, 61, 60 },
-};
+int score_move (Move *m, int ply, Pos *pos) {
 
-int score_move (Move *m, int ply) {
 	if (m->capture != -1) {
-		int victim   = m->capture % 6;
-		int attacker = m->pieza % 6;
-		return 2000000 + mvv_lva[victim][attacker];
+		int see_val = see(pos, m->to, values[m->capture % 6], m->from, values[m->pieza % 6]);
+		if (see_val >= 0) {
+			return 2000000 + see_val;
+		} else {
+			return 1000000 + see_val;
+		}
 	}
 
 	if (m->to >= 56 && m->from >= 48) {

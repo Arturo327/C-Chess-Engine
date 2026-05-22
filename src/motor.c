@@ -105,7 +105,12 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 	
 	int scores[count];
 	for (int i = 0; i < count; i++) {
-		scores[i] = score_move(moves + i, ply);
+		if (moves[i].capture != -1) {
+			int see_score = see(pos, moves[i].to, values[moves[i].capture % 6], moves[i].from, values[moves[i].pieza % 6]);
+			scores[i] = 2000000 + see_score;
+		} else {
+			scores[i] = history[moves[i].pieza][moves[i].to];
+		}
 	}
 
 	sort_moves (moves, count, scores);
@@ -118,8 +123,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 			int delta_margin = 200;
 			if (stand_pat + victim_val + delta_margin < alpha) break;
 
-			int see_val = see(pos, moves[i].to, victim_val, moves[i].from, values[moves[i].pieza % 6]);
-			if (see_val < 0) continue;
+			if (scores[i] < 2000000) continue;
 		}
 
 		Pos child = *pos;
@@ -225,7 +229,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	int scores[total_moves - has_tt_move];
 	actual_move = moves + has_tt_move;
 	for (int i = 0; i < total_moves - has_tt_move; i++) {
-		scores[i] = score_move(actual_move, ply);
+		scores[i] = score_move(actual_move, ply, pos);
 		actual_move++;
 	}
 
@@ -235,6 +239,8 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	Pos child;
 	Move best_move = {0};
 	actual_move = moves;
+
+	int legal = 0;
 
 	for (int i = 0; i < total_moves; i++) {
 
@@ -250,17 +256,19 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 			continue;
 		}
 
+		legal++;
+
 		int da_jaque = is_attacked(opp_king, !side, &child);
 
 		rep_stack[rep_top++] = child.hash;
 
 		int eval;
-		if (i == 0) {
+		if (legal == 1) {
 			eval = -negamax(&child, depth - 1, ply + 1, -beta, -alpha, NULL, 1, da_jaque);
 		} else {
 			int reduction = 0;
-			if (i >= 3 && !da_jaque && !en_jaque && depth >= 3 && actual_move->capture == -1) {
-				reduction = lmr_table[depth][i];
+			if (legal >= 3 && !da_jaque && !en_jaque && depth >= 3 && actual_move->capture == -1) {
+				reduction = lmr_table[depth][legal];
 				if (reduction < 1) reduction = 1;
 				if (reduction > depth - 2) reduction = depth - 2;
 			}
@@ -290,7 +298,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 		actual_move++;
 	}
 
-	if (maxEval == -1000000) {
+	if (legal == 0) {
 		int score = en_jaque ? -(100000 - ply) : 0;
 		int a = score;
 		if (score < -99000) a = score - ply;

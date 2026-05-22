@@ -10,7 +10,7 @@
 extern int history[12][64];
 extern Move killers[MAX_DEPTH][2];
 
-int score_move (Move *m, int ply);
+int score_move (Move *m, int ply, Pos *pos);
 void sort_moves (Move *moves, int count, int *scores);
 
 #endif

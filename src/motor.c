@@ -64,7 +64,7 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 
 	int tt_score = 0;
 	TTEntry *raw = tt_probe(pos->hash);
-	TTEntry entry;
+	TTEntry entry = {0};
 	if (raw) {
 		entry = *raw;
 		tt_score = entry.score;
@@ -82,7 +82,10 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 
 		if (depth == 0) return stand_pat;
 		if (stand_pat + 1000 < alpha) return alpha;
-		if (stand_pat >= beta) return beta;
+		if (stand_pat >= beta) {
+			tt_store(pos->hash, beta, 0, TT_LOWER, NULL);
+			return beta;
+		}
 		if (stand_pat > alpha) alpha = stand_pat;
 	} else {
 		if (depth < -3) return alpha;
@@ -137,7 +140,10 @@ int quiescence (Pos *pos, int depth, int alpha, int beta, int ply) {
 
 		int eval = -quiescence(&child, depth - 1, -beta, -alpha, ply + 1);
 		if (eval > alpha) alpha = eval;
-		if (alpha >= beta) return beta;
+		if (alpha >= beta) {
+			tt_store(pos->hash, beta, 0, TT_LOWER, &moves[i]);
+			return beta;
+		}
 	}
 
 	if (in_check && legal == 0) return -100000 + ply;
@@ -166,6 +172,7 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	TTEntry *raw = tt_probe(pos->hash);
 	int score = 0;
 	TTEntry entry;
+
 	if (raw) {
 		entry = *raw;
 		score = entry.score;
@@ -208,32 +215,20 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	int total_moves;
 	if (side) total_moves = get_b_moves(moves, pos);
 	else total_moves = get_w_moves(moves, pos);
+
+	int has_tt_move = (raw != NULL && entry.best.from != entry.best.to);
 	Move *actual_move = moves;
+	int scores[total_moves];
 
-	Move tt_best_move = {0};
-	int has_tt_move = (raw != NULL && raw->best.from != raw->best.to);
-
-	if (has_tt_move) {
-		tt_best_move = entry.best;
-		for (int i = 0; i < total_moves; i++) {
-			if (actual_move->from == tt_best_move.from && actual_move->to == tt_best_move.to) {
-				Move tmp = moves[0];
-				moves[0] = *actual_move;
-				*actual_move = tmp;
-				break;
-			}
-			actual_move++;
-		}
-	}
-
-	int scores[total_moves - has_tt_move];
-	actual_move = moves + has_tt_move;
-	for (int i = 0; i < total_moves - has_tt_move; i++) {
-		scores[i] = score_move(actual_move, ply, pos);
+	for (int i = 0; i < total_moves; i++) {
+		if (has_tt_move && actual_move->from == entry.best.from && actual_move->to == entry.best.to)
+			scores[i] = 3000000;
+		else
+			scores[i] = score_move(actual_move, ply, pos);
 		actual_move++;
 	}
 
-	sort_moves(moves + has_tt_move, total_moves - has_tt_move, scores);
+	sort_moves(moves, total_moves, scores);
 
 	int maxEval = -1000000;
 	Pos child;
@@ -299,11 +294,10 @@ int negamax (Pos *pos, int depth, int ply, int alpha, int beta, Move *best_out, 
 	}
 
 	if (legal == 0) {
-		int score = en_jaque ? -(100000 - ply) : 0;
-		int a = score;
-		if (score < -99000) a = score - ply;
-		tt_store(pos->hash, a, depth, TT_EXACT, NULL);
-		return score;
+		int terminal = en_jaque ? -(100000 - ply) : 0;
+		int stored = (terminal < -99000) ? terminal - ply : terminal;
+		tt_store(pos->hash, stored, depth, TT_EXACT, NULL);
+		return terminal;
 	}
 
 	int flag;

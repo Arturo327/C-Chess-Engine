@@ -66,7 +66,7 @@ static int least_valuable_attacker (int sq, int side, uint64_t occupied, Pos *po
 	return -1;
 }
 
-int see(Pos *pos, int to, int target_val, int from, int piece_val) {
+int see (Pos *pos, int to, int target_val, int from, int piece_val) {
 	uint64_t used = 0;
 	used |= (1ULL << from);
 	uint64_t occupied = pos->occupied;

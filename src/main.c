@@ -6,7 +6,7 @@
 
 #define FEN_FILE "files/bench.fen"
 
-static int char_to_piece(char c) {
+static int char_to_piece (char c) {
 	switch (c) {
 		case 'P': return 0;
 		case 'R': return 1;
@@ -98,7 +98,7 @@ static void get_fen (const char *line, Pos *pos) {
 	for (int i = 0; i < 12; i++) pos->occupied |= pos->bitboard[i];
 }
 
-static void parse_position(const char *line, Pos *pos) {
+static void parse_position (const char *line, Pos *pos) {
 	char *start = strstr(line, " startpos");
 	if (start) {
 		reset(pos);

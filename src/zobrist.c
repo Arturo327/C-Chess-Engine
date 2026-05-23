@@ -7,14 +7,14 @@ uint64_t zob_castle[16];
 uint64_t zob_ep[9];
 
 static uint64_t state = 0x123456789ABCDEF0ULL;
-static uint64_t xorshift64(void) {
+static uint64_t xorshift64 (void) {
 	state ^= state << 13;
 	state ^= state >> 7;
 	state ^= state << 17;
 	return state;
 }
 
-void init_zobrist(void) {
+void init_zobrist (void) {
 	for (int p = 0; p < 12; p++)
 		for (int sq = 0; sq < 64; sq++)
 			zob_pieces[p][sq] = xorshift64();
@@ -28,7 +28,7 @@ void init_zobrist(void) {
 	zob_ep[8] = 0;
 }
 
-uint64_t compute_hash(Pos *pos) {
+uint64_t compute_hash (Pos *pos) {
 	uint64_t h = 0;
 	for (int p = 0; p < 12; p++) {
 		uint64_t bb = pos->bitboard[p];

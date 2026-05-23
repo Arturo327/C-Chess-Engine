@@ -17,7 +17,7 @@ int alfil_bits[64] = {0};
 uint64_t pawn_attacks[2][64] = {0};
 
 static uint64_t state = 0x123456789ABCDEF0ULL;
-static uint64_t xorshift64(void) {
+static uint64_t xorshift64 (void) {
 	state ^= state << 13;
 	state ^= state >> 7;
 	state ^= state << 17;
@@ -105,7 +105,7 @@ static uint64_t alfil_attacks_slow (int sq, uint64_t occ) {
 	return attacks;
 }
 
-static uint64_t find_magic(int sq, int bits, int is_rook) {
+static uint64_t find_magic (int sq, int bits, int is_rook) {
 	uint64_t mask = is_rook ? rook_masks[sq] : alfil_masks[sq];
 	int n = __builtin_popcountll(mask);
 	int size = 1 << n;
@@ -135,7 +135,7 @@ static uint64_t find_magic(int sq, int bits, int is_rook) {
 	}
 }
 
-void init_magics(void) {
+void init_magics (void) {
 	for (int sq = 0; sq < 64; sq++) {
 		rook_masks[sq] = rook_mask(sq);
 		alfil_masks[sq] = alfil_mask(sq);

@@ -6,7 +6,7 @@
 uint64_t horse_moves[64] = {0};
 uint64_t king_moves[64] = {0};
 
-void generate_king_table(void) {
+void generate_king_table (void) {
 	uint64_t fila_a = 0x0101010101010101ULL;
 	uint64_t fila_h = 0x8080808080808080ULL;
 	for (int i = 0; i < 64; i++) {
@@ -26,7 +26,7 @@ void generate_king_table(void) {
 	}
 }
 
-void generate_horse_table(void) {
+void generate_horse_table (void) {
 	uint64_t fila_a = 0x0101010101010101ULL;
 	uint64_t fila_h = 0x8080808080808080ULL;
 	uint64_t fila_ab = 0x0303030303030303ULL;  // columnas A y B
@@ -52,7 +52,7 @@ void generate_horse_table(void) {
 	}
 }
 
-void reset(Pos *pos) {
+void reset (Pos *pos) {
 	pos->bitboard[0] = 0x000000000000FF00ULL;    //peon blanco
 	pos->bitboard[1] = 0x0000000000000081ULL;    //torre blanca
 	pos->bitboard[2] = 0x0000000000000042ULL;    //caballo blanco

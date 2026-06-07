@@ -1,9 +1,8 @@
-# C Chess Engine
+# R2Chess - C Chess Engine
 
 ![C](https://img.shields.io/badge/language-C-00599C?logo=c&logoColor=white)
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
 
-A lightweight, from-scratch chess engine implemented in C, designed for educational purposes and experimentation with fancy modern techniques.
+R2Chess is a personal project, lightweight, from-scratch chess engine implemented in C, designed for educational purposes and experimentation with fancy modern techniques.
 
 ---
 
@@ -56,7 +55,7 @@ Compile:
 make
 ```
 
-Then download Cute Chess (or something similar). 
+Then download Cute Chess (or something similar, like Arena Chess GUI, PyChess or Lucas Chess).
 
 tools -> settings -> engines -> add
 
@@ -69,25 +68,6 @@ Enjoy!
 ## Performance
 
 According to a test in which the engine faced Stockfish (limited to an ELO rating of 2500), and in which 50 games were played, the engine’s ELO rating is around 2500.
+Usually, in 40/60 games, it reaches a depth of 17-20.
 
 ---
-
-## Future work
-
-- Multi-threading
-- Improve evaluation: pawn structure, mobility, center control...
-
----
-
-
-
-
-
-
-
-
-
-
-
-
-

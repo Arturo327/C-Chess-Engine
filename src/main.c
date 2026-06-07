@@ -126,54 +126,6 @@ static void parse_position (const char *line, Pos *pos) {
 	} 
 }
 
-static void bench (const char *filename) {
-	FILE *f = fopen(filename, "r");
-	if (!f) {
-		fprintf(stderr, "bench: no se puede abrir %s\n", filename);
-		return;
-	}
-
-	long long total_nodes = 0;
-	long long total_time = 0;
-	int positions = 0;
-	int depth = 14;
-	int correct = 0;
-
-	char line[1024];
-	while (fgets(line, sizeof(line), f)) {
-		if (line[0] == '\n' || line[0] == '#') continue;
-		line[strcspn(line, "\n")] = 0;
-		Pos pos;
-		get_fen (line, &pos);
-
-		char *p = strstr(line, " bm ");
-		char best[7] = {0};
-		if (p != NULL) {
-			p += 4;
-			(void)sscanf(p, "%7[^;\n]", best);
-		}
-
-		correct += bench_pos (depth, &pos, &total_time, &total_nodes, best);
-		positions++;
-	}
-
-	fclose(f);
-
-	if (positions == 0) {
-		printf("bench: no se encontraron posiciones\n");
-		return;
-	}
-
-	if (total_time == 0) total_time = 1;
-	long long avg_nps = total_nodes * 1000LL / total_time;
-	printf("\n=== BENCH RESULTADO ===\n");
-	printf("Posiciones : %d\n", positions);
-	printf("Nodos total: %lld\n", total_nodes);
-	printf("Tiempo total: %lldms\n", total_time);
-	printf("NPS medio  : %lld\n", avg_nps);
-	printf("Aciertos   : %d/30\n", correct);
-}
-
 static long long get_movetime (char *line, int side) {
 	long long wtime = -1, btime = -1, winc = 0, binc = 0;
 	long long movetime = -1, movestogo = 0;
@@ -239,9 +191,6 @@ int main (void) {
 
 		} else if (strncmp(line, "position", 8) == 0) {
 			parse_position(line, &pos);
-
-		} else if (strncmp(line, "bench", 5) == 0) {
-			bench(FEN_FILE);
 
 		} else if (strncmp(line, "go", 2) == 0) {
 			int depth = 30;

@@ -65,6 +65,12 @@ Enjoy!
 
 ---
 
+## License
+
+MIT
+
+---
+
 ## Performance
 
 According to a test in which the engine faced Stockfish (limited to an ELO rating of 2500), and in which 50 games were played, the engine’s ELO rating is around 2500.

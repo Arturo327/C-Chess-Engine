@@ -55,7 +55,7 @@ static void get_move (char *s, Pos *pos) {
 static void get_fen (const char *line, Pos *pos) {
 	int sq = 56;
 	const char *p = line;
-	memset(pos->board, ~0, 64 * sizeof(int));
+	memset(pos->board, ~0, 64 * sizeof(int8_t));
 	memset(pos->bitboard, 0, 12 * sizeof(uint64_t));
 	while (*p && *p != ' ') {
 		if (*p == '/') {

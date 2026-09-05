@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Iinclude -O2 -march=native
+CFLAGS = -Iinclude -Wall -Wextra -O2 -march=native
 
 SRC = $(wildcard src/*.c)
 OBJ = $(patsubst src/%.c, build/%.o, $(SRC))
